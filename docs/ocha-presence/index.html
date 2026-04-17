@@ -1,1 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCHA Presence 2026 – Interactive Prototype</title>
+  <meta name="description" content="Interactive prototype of OCHA's 2026 presence map using Leaflet and manually stored office data." />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --ocha-blue-900: #005b8f;
+      --ocha-blue-800: #007bb8;
+      --ocha-blue-700: #00a0df;
+      --ocha-blue-600: #48b9ea;
+      --ocha-blue-500: #87d2f3;
+      --ocha-blue-400: #bfe9fb;
+      --text-900: #1f2a35;
+      --text-700: #4a5b6a;
+      --text-500: #6d7e8c;
+      --line: #d9e2e8;
+      --bg: #f5f7f8;
+      --panel: #ffffff;
+      --country-base: #e6ebef;
+      --country-line: #ffffff;
+      --country-muted: #dbe3e8;
+      --shadow: 0 12px 30px rgba(24, 48, 69, 0.12);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
 
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--text-900);
+      background: linear-gradient(180deg, #f6fafc 0%, #f3f7f9 100%);
+    }
+
+    body {
+      padding: 24px;
+    }
+
+    .page-shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(0, 91, 143, 0.08);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      padding: 24px;
+      position: sticky;
+      top: 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ocha-blue-900);
+      background: rgba(0, 160, 223, 0.08);
+      border: 1px solid rgba(0, 160, 223, 0.15);
+      border-radius: 999px;
+      padding: 6px 10px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 2vw, 2.3rem);
+      line-height: 1.12;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .lead {
+      margin: 0 0 18px;
+      font-size: 0.98rem;
+      line-height: 1.6;
+      color: var(--text-700);
+    }
+
+    .subtle-note {
+      margin: 10px 0 0;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: var(--text-500);
+    }
+
+    .helper-card {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, #fbfdff 0%, #f7fbfd 100%);
+    }
+
+    .helper-card h2,
+    .legend h2,
+    .filters h2,
+    .data-status h2 {
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .legend-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.92rem;
+      color: var(--text-700);
+    }
+
+    .legend-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,0,0,0.08);
+      flex: 0 0 auto;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filter-pill {
+      appearance: none;
+      border: 1px solid rgba(0, 91, 143, 0.16);
+      background: #fff;
+      color: var(--text-700);
+      font: inherit;
+      font-size: 0.9rem;
+      padding: 9px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .filter-pill:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 91, 143, 0.12);
+      border-color: rgba(0, 91, 143, 0.3);
+    }
+
+    .filter-pill.active {
+      background: var(--ocha-blue-900);
+      color: #fff;
+      border-color: var(--ocha-blue-900);
+      box-shadow: 0 8px 18px rgba(0, 91, 143, 0.22);
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+      color: var(--ocha-blue-900);
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      color: var(--text-500);
+    }
+
+    .map-panel {
+      overflow: hidden;
+      min-height: calc(100vh - 48px);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .map-toolbar {
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(0, 91, 143, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: linear-gradient(180deg, #fbfdff 0%, #f8fbfd 100%);
+    }
+
+    .toolbar-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .toolbar-meta {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .toolbar-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--text-700);
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    #map {
+      width: 100%;
+      min-height: 720px;
+      background: linear-gradient(180deg, #fcfdff 0%, #f4f7f9 100%);
+    }
+
+    .leaflet-container {
+      font: inherit;
+    }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 14px;
+      box-shadow: 0 14px 32px rgba(19, 43, 63, 0.18);
+      padding: 2px;
+    }
+
+    .leaflet-popup-content {
+      margin: 14px 16px;
+      min-width: 230px;
+    }
+
+    .popup-title {
+      margin: 0 0 10px;
+      font-size: 1.08rem;
+      font-weight: 800;
+      color: var(--text-900);
+    }
+
+    .popup-meta {
+      margin: 8px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .popup-meta li {
+      display: grid;
+      gap: 4px;
+      font-size: 0.92rem;
+      color: var(--text-700);
+      line-height: 1.45;
+    }
+
+    .popup-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-500);
+      font-weight: 700;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.75rem;
+      line-height: 1;
+      padding: 7px 8px;
+      border-radius: 999px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border: 1px solid transparent;
+    }
+
+    .status-confirmed {
+      background: rgba(0, 160, 223, 0.08);
+      color: var(--ocha-blue-900);
+      border-color: rgba(0, 160, 223, 0.18);
+    }
+
+    .status-provisional {
+      background: rgba(237, 161, 40, 0.12);
+      color: #8a5b10;
+      border-color: rgba(237, 161, 40, 0.24);
+    }
+
+    .tooltip-country {
+      background: rgba(31, 42, 53, 0.94);
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1;
+      padding: 10px 12px;
+      box-shadow: 0 8px 22px rgba(19, 43, 63, 0.2);
+    }
+
+    .tooltip-country::before {
+      display: none;
+    }
+
+    .error-banner {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(183, 52, 52, 0.18);
+      background: rgba(183, 52, 52, 0.06);
+      color: #7f2626;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      display: none;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: var(--text-500);
+    }
+
+    .footer-note code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88em;
+      background: rgba(0, 91, 143, 0.06);
+      padding: 2px 5px;
+      border-radius: 5px;
+    }
+
+.disclaimer-banner {
+  max-width: 1440px;
+  margin: 0 auto 16px;
+  padding: 14px 18px;
+  background: #fff8e1;
+  border: 1px solid #f1d27a;
+  border-radius: 12px;
+  color: #6b5300;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-shadow: 0 6px 18px rgba(24, 48, 69, 0.08);
+}
+
+.disclaimer-banner strong {
+  color: #5a4300;
+}
+
+    @media (max-width: 1120px) {
+      .page-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        top: auto;
+      }
+
+      .map-panel {
+        min-height: auto;
+      }
+
+      #map {
+        min-height: 68vh;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 12px;
+      }
+
+      .sidebar,
+      .map-toolbar {
+        padding: 16px;
+      }
+
+      .status-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      #map {
+        min-height: 70vh;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="disclaimer-banner" role="note" aria-label="Disclaimer">
+  <strong>Disclaimer:</strong> Proof of Concept – neither official nor for decision‑making; Created with CoPilot by Andrej Verity; Content not verified for accuracy.
+</div>
+
+  <div class="page-shell">
+    <aside class="panel sidebar">
+      <div class="eyebrow">Interactive prototype</div>
+      <h1>OCHA Presence 2026</h1>
+      <p class="lead">
+        This starter build uses a single full HTML page, Leaflet, a manually stored office dataset, hover-only country names,
+        and tap/click pop-ups for office details.
+      </p>
+      <p class="subtle-note">
+        Countries with OCHA presence are coloured by their <strong>primary office type</strong>. If a country has more than one office type,
+        the pop-up lists all of them.
+      </p>
+
+      <section class="helper-card filters">
+        <h2>Filter map</h2>
+        <div class="pill-row" id="filterPills"></div>
+      </section>
+
+      <section class="helper-card legend">
+        <h2>Legend</h2>
+        <ul class="legend-list" id="legendList"></ul>
+      </section>
+
+      <section class="helper-card data-status">
+        <h2>Data status</h2>
+        <div class="status-grid" id="statusGrid"></div>
+        <p class="subtle-note">
+          <strong>Confirmed</strong> entries are aligned to the PDF or region/country pages that explicitly describe the office type.
+          <strong>Provisional</strong> entries are included as a practical starting point so you can test the interaction immediately and then refine the data object.
+        </p>
+      </section>
+
+      <div id="errorBanner" class="error-banner" role="alert"></div>
+
+      <p class="footer-note">
+        To switch from the hosted country polygons to a local file later, download the GeoJSON and update
+        <code>WORLD_GEOJSON_URL</code> in the script section.
+      </p>
+    </aside>
+
+    <main class="panel map-panel">
+      <div class="map-toolbar">
+        <div>
+          <p class="toolbar-title">World coverage prototype</p>
+          <div class="toolbar-meta">
+            <span class="toolbar-chip" id="visibleCountriesChip">0 countries shown</span>
+            <span class="toolbar-chip" id="activeFilterChip">Filter: All presence</span>
+          </div>
+        </div>
+        <div class="toolbar-meta">
+          <span class="toolbar-chip">Hover: country name + office details</span>
+          <span class="toolbar-chip">Tap / click: office details</span>
+        </div>
+      </div>
+      <div id="map" aria-label="Interactive OCHA Presence 2026 map"></div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const WORLD_GEOJSON_URL = 'countries.geojson';
+
+    const OFFICE_TYPE_META = {
+      'Headquarters': { color: '#005b8f', priority: 1 },
+      'Global hub': { color: '#007bb8', priority: 2 },
+      'Regional office': { color: '#00a0df', priority: 3 },
+      'Country office': { color: '#48b9ea', priority: 4 },
+      'Humanitarian Advisory Team': { color: '#87d2f3', priority: 5 },
+      'Liaison office': { color: '#bfe9fb', priority: 6 }
+    };
+
+    const PRESENCE_DATA = [
+      {
+        iso3: 'USA',
+        countryName: 'United States of America',
+        entries: [
+          { type: 'Headquarters', location: 'New York', status: 'confirmed' },
+          { type: 'Liaison office', location: 'Washington, D.C.', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'CHE',
+        countryName: 'Switzerland',
+        entries: [
+          { type: 'Headquarters', location: 'Geneva', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'NLD',
+        countryName: 'Netherlands',
+        entries: [
+          { type: 'Global hub', location: 'The Hague', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'TUR',
+        countryName: 'Türkiye',
+        entries: [
+          { type: 'Global hub', location: 'Istanbul', status: 'confirmed' },
+          { type: 'Liaison office', location: 'Ankara', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'BEL',
+        countryName: 'Belgium',
+        entries: [
+          { type: 'Liaison office', location: 'Brussels', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'JPN',
+        countryName: 'Japan',
+        entries: [
+          { type: 'Liaison office', location: 'Tokyo', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'IDN',
+        countryName: 'Indonesia',
+        entries: [
+          { type: 'Liaison office', location: 'ASEAN, Jakarta', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'SAU',
+        countryName: 'Saudi Arabia',
+        entries: [
+          { type: 'Liaison office', location: 'Riyadh', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'KWT',
+        countryName: 'Kuwait',
+        entries: [
+          { type: 'Liaison office', location: 'Kuwait City', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'QAT',
+        countryName: 'Qatar',
+        entries: [
+          { type: 'Liaison office', location: 'Doha', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'ARE',
+        countryName: 'United Arab Emirates',
+        entries: [
+          { type: 'Liaison office', location: 'United Arab Emirates', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'SEN',
+        countryName: 'Senegal',
+        entries: [
+          { type: 'Regional office', location: 'Dakar', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'KEN',
+        countryName: 'Kenya',
+        entries: [
+          { type: 'Regional office', location: 'Nairobi', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'PAN',
+        countryName: 'Panama',
+        entries: [
+          { type: 'Regional office', location: 'Panamá', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'THA',
+        countryName: 'Thailand',
+        entries: [
+          { type: 'Regional office', location: 'Bangkok', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'JOR',
+        countryName: 'Jordan',
+        entries: [
+          { type: 'Regional office', location: 'Amman (ROMENA)', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'EGY',
+        countryName: 'Egypt',
+        entries: [
+          { type: 'Regional office', location: 'Cairo (ROMENA)', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'FJI',
+        countryName: 'Fiji',
+        entries: [
+          { type: 'Regional office', location: 'Office of the Pacific Islands, Suva', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'AFG',
+        countryName: 'Afghanistan',
+        entries: [
+          { type: 'Country office', location: 'Afghanistan', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'PAK',
+        countryName: 'Pakistan',
+        entries: [
+          { type: 'Country office', location: 'Pakistan', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'MMR',
+        countryName: 'Myanmar',
+        entries: [
+          { type: 'Country office', location: 'Myanmar', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'PHL',
+        countryName: 'Philippines',
+        entries: [
+          { type: 'Humanitarian Advisory Team', location: 'Philippines', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'LBN',
+        countryName: 'Lebanon',
+        entries: [
+          { type: 'Country office', location: 'Lebanon', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'SYR',
+        countryName: 'Syrian Arab Republic',
+        entries: [
+          { type: 'Country office', location: 'Syrian Arab Republic', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'YEM',
+        countryName: 'Yemen',
+        entries: [
+          { type: 'Country office', location: 'Yemen', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'IRN',
+        countryName: 'Iran',
+        entries: [
+          { type: 'Humanitarian Advisory Team', location: 'Islamic Republic of Iran', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'PSE',
+        countryName: 'Occupied Palestinian Territory',
+        entries: [
+          { type: 'Country office', location: 'Occupied Palestinian Territory', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'UKR',
+        countryName: 'Ukraine',
+        entries: [
+          { type: 'Country office', location: 'Ukraine', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'COL',
+        countryName: 'Colombia',
+        entries: [
+          { type: 'Country office', location: 'Colombia', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'VEN',
+        countryName: 'Venezuela',
+        entries: [
+          { type: 'Country office', location: 'Venezuela', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'HTI',
+        countryName: 'Haiti',
+        entries: [
+          { type: 'Country office', location: 'Haiti', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'BRB',
+        countryName: 'Barbados',
+        entries: [
+          { type: 'Humanitarian Advisory Team', location: 'Barbados', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'CUB',
+        countryName: 'Cuba',
+        entries: [
+          { type: 'Humanitarian Advisory Team', location: 'Cuba', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'MEX',
+        countryName: 'Mexico',
+        entries: [
+          { type: 'Humanitarian Advisory Team', location: 'Mexico', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'BFA',
+        countryName: 'Burkina Faso',
+        entries: [
+          { type: 'Country office', location: 'Burkina Faso', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'CMR',
+        countryName: 'Cameroon',
+        entries: [
+          { type: 'Country office', location: 'Cameroon', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'CAF',
+        countryName: 'Central African Republic',
+        entries: [
+          { type: 'Country office', location: 'Central African Republic', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'TCD',
+        countryName: 'Chad',
+        entries: [
+          { type: 'Country office', location: 'Chad', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'COD',
+        countryName: 'Democratic Republic of the Congo',
+        entries: [
+          { type: 'Country office', location: 'Democratic Republic of the Congo', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'MLI',
+        countryName: 'Mali',
+        entries: [
+          { type: 'Country office', location: 'Mali', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'NER',
+        countryName: 'Niger',
+        entries: [
+          { type: 'Country office', location: 'Niger', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'NGA',
+        countryName: 'Nigeria',
+        entries: [
+          { type: 'Country office', location: 'Nigeria', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'SDN',
+        countryName: 'Sudan',
+        entries: [
+          { type: 'Country office', location: 'Sudan', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'SSD',
+        countryName: 'South Sudan',
+        entries: [
+          { type: 'Country office', location: 'South Sudan', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'SOM',
+        countryName: 'Somalia',
+        entries: [
+          { type: 'Country office', location: 'Somalia', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'MOZ',
+        countryName: 'Mozambique',
+        entries: [
+          { type: 'Country office', location: 'Mozambique', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'MDG',
+        countryName: 'Madagascar',
+        entries: [
+          { type: 'Country office', location: 'Madagascar', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'ERI',
+        countryName: 'Eritrea',
+        entries: [
+          { type: 'Country office', location: 'Eritrea', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'ETH',
+        countryName: 'Ethiopia',
+        entries: [
+          { type: 'Country office', location: 'Ethiopia', status: 'confirmed' },
+          { type: 'Liaison office', location: 'African Union liaison', status: 'confirmed' }
+        ]
+      },
+      {
+        iso3: 'BDI',
+        countryName: 'Burundi',
+        entries: [
+          { type: 'Humanitarian Advisory Team', location: 'Burundi', status: 'provisional' }
+        ]
+      },
+      {
+        iso3: 'VUT',
+        countryName: 'Vanuatu',
+        entries: [
+          { type: 'Humanitarian Advisory Team', location: 'Vanuatu', status: 'provisional' }
+        ]
+      }
+    ];
+
+    const FILTER_OPTIONS = ['All presence'].concat(Object.keys(OFFICE_TYPE_META));
+    const presenceIndex = new Map(PRESENCE_DATA.map(item => [item.iso3, item]));
+
+    const map = L.map('map', {
+      zoomControl: true,
+      worldCopyJump: false,
+      minZoom: 1.5,
+      maxZoom: 7,
+      attributionControl: true
+    }).setView([15, 10], 2);
+
+    map.attributionControl.setPrefix('');
+    map.attributionControl.addAttribution('Prototype styling + behaviour by M365 Copilot');
+    map.attributionControl.addAttribution('Country polygons: Natural Earth via DataHub');
+
+    let activeFilter = 'All presence';
+    let worldLayer = null;
+
+    const legendList = document.getElementById('legendList');
+    const filterPills = document.getElementById('filterPills');
+    const statusGrid = document.getElementById('statusGrid');
+    const visibleCountriesChip = document.getElementById('visibleCountriesChip');
+    const activeFilterChip = document.getElementById('activeFilterChip');
+    const errorBanner = document.getElementById('errorBanner');
+
+    function sortEntries(entries) {
+      return [...entries].sort((a, b) => OFFICE_TYPE_META[a.type].priority - OFFICE_TYPE_META[b.type].priority);
+    }
+
+    function getPrimaryType(countryRecord) {
+      const sorted = sortEntries(countryRecord.entries);
+      return sorted[0]?.type || null;
+    }
+
+    function countryMatchesFilter(countryRecord) {
+      if (activeFilter === 'All presence') return true;
+      return countryRecord.entries.some(entry => entry.type === activeFilter);
+    }
+
+    function getFeatureIso3(feature) {
+      return feature?.properties?.['ISO3166-1-Alpha-3'] || feature?.properties?.iso_a3 || feature?.properties?.ADM0_A3;
+    }
+
+    function getFeatureName(feature) {
+      return feature?.properties?.name || feature?.properties?.ADMIN || feature?.properties?.admin || 'Country';
+    }
+
+    function formatTypes(countryRecord) {
+      return sortEntries(countryRecord.entries)
+        .map(entry => `${entry.type} — ${entry.location}`)
+        .join('<br>');
+    }
+
+    function buildPopup(countryRecord) {
+      const provisionalCount = countryRecord.entries.filter(entry => entry.status === 'provisional').length;
+      const confirmedCount = countryRecord.entries.filter(entry => entry.status === 'confirmed').length;
+
+      const badges = [];
+      if (confirmedCount) {
+        badges.push('<span class="status-badge status-confirmed">Confirmed data</span>');
+      }
+      if (provisionalCount) {
+        badges.push('<span class="status-badge status-provisional">Needs review</span>');
+      }
+
+      return `
+        <div>
+          <h3 class="popup-title">${countryRecord.countryName}</h3>
+          <ul class="popup-meta">
+            <li>
+              <span class="popup-label">Office type(s)</span>
+              <span>${formatTypes(countryRecord)}</span>
+            </li>
+            <li>
+              <span class="popup-label">Primary map colour</span>
+              <span>${getPrimaryType(countryRecord)}</span>
+            </li>
+          </ul>
+          <div class="badge-row">${badges.join('')}</div>
+        </div>
+      `;
+    }
+
+    function styleForFeature(feature) {
+      const iso3 = getFeatureIso3(feature);
+      const record = presenceIndex.get(iso3);
+
+      if (!record) {
+        return {
+          color: '#ffffff',
+          weight: 1,
+          fillColor: '#e6ebef',
+          fillOpacity: 1,
+          opacity: 1,
+          interactive: false
+        };
+      }
+
+      const matches = countryMatchesFilter(record);
+      const primaryType = getPrimaryType(record);
+      const color = matches ? OFFICE_TYPE_META[primaryType].color : '#dbe3e8';
+
+      return {
+        color: '#ffffff',
+        weight: matches ? 1.3 : 1,
+        fillColor: color,
+        fillOpacity: matches ? 0.96 : 0.68,
+        opacity: 1,
+        dashArray: matches ? null : '1 4'
+      };
+    }
+
+    function highlightFeature(layer, feature) {
+      const iso3 = getFeatureIso3(feature);
+      const record = presenceIndex.get(iso3);
+      if (!record || !countryMatchesFilter(record)) return;
+
+      layer.setStyle({
+        weight: 2.4,
+        color: '#14435f',
+        fillOpacity: 1
+      });
+
+      if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+      }
+
+      layer.openTooltip();
+    }
+
+    function resetHighlight(layer, feature) {
+      if (!worldLayer) return;
+      worldLayer.resetStyle(layer);
+      layer.closeTooltip();
+    }
+
+    function updateCountryCount() {
+      let count = 0;
+      PRESENCE_DATA.forEach(record => {
+        if (countryMatchesFilter(record)) count += 1;
+      });
+      visibleCountriesChip.textContent = `${count} ${count === 1 ? 'country' : 'countries'} shown`;
+      activeFilterChip.textContent = `Filter: ${activeFilter}`;
+    }
+
+    function refreshMapStyles() {
+      if (worldLayer) {
+        worldLayer.setStyle(styleForFeature);
+      }
+      updateCountryCount();
+    }
+
+    function renderLegend() {
+      legendList.innerHTML = Object.entries(OFFICE_TYPE_META)
+        .map(([label, meta]) => `
+          <li class="legend-item">
+            <span class="legend-left"><span class="swatch" style="background:${meta.color}"></span>${label}</span>
+          </li>`)
+        .join('');
+    }
+
+    function renderFilters() {
+      filterPills.innerHTML = FILTER_OPTIONS
+        .map(option => `
+          <button type="button" class="filter-pill ${option === activeFilter ? 'active' : ''}" data-filter="${option}">${option}</button>`)
+        .join('');
+
+      filterPills.querySelectorAll('.filter-pill').forEach(button => {
+        button.addEventListener('click', () => {
+          activeFilter = button.dataset.filter;
+          renderFilters();
+          refreshMapStyles();
+        });
+      });
+    }
+
+    function renderStatusCards() {
+      const confirmed = PRESENCE_DATA.reduce((sum, country) => sum + country.entries.filter(entry => entry.status === 'confirmed').length, 0);
+      const provisional = PRESENCE_DATA.reduce((sum, country) => sum + country.entries.filter(entry => entry.status === 'provisional').length, 0);
+      const multiType = PRESENCE_DATA.filter(country => country.entries.length > 1).length;
+      const countries = PRESENCE_DATA.length;
+
+      const cards = [
+        { value: countries, label: 'Countries currently stored in the page' },
+        { value: confirmed, label: 'Office entries marked confirmed' },
+        { value: provisional, label: 'Office entries marked provisional' },
+        { value: multiType, label: 'Countries with more than one office type' }
+      ];
+
+      statusGrid.innerHTML = cards.map(card => `
+        <div class="stat-card">
+          <span class="stat-value">${card.value}</span>
+          <span class="stat-label">${card.label}</span>
+        </div>`).join('');
+    }
+
+    async function loadWorld() {
+      try {
+        const response = await fetch(WORLD_GEOJSON_URL, { mode: 'cors' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const geojson = await response.json();
+
+        worldLayer = L.geoJSON(geojson, {
+          style: styleForFeature,
+          onEachFeature(feature, layer) {
+            const iso3 = getFeatureIso3(feature);
+            const record = presenceIndex.get(iso3);
+            if (!record) return;
+
+            const fallbackName = getFeatureName(feature);
+            if (!record.countryName) record.countryName = fallbackName;
+
+            layer.bindTooltip(record.countryName || fallbackName, {
+              sticky: true,
+              direction: 'top',
+              className: 'tooltip-country',
+              offset: [0, -4],
+              opacity: 1
+            });
+
+            layer.bindPopup(buildPopup(record), {
+              maxWidth: 320,
+              autoPanPadding: [18, 18]
+            });
+
+            layer.on({
+              mouseover: () => {
+                highlightFeature(layer, feature);
+                layer.openPopup();
+              },
+              mouseout: () => {
+                resetHighlight(layer, feature);
+                layer.closePopup();
+              },
+              click: () => layer.openPopup(),
+              touchstart: () => layer.openPopup(),
+              focus: () => {
+                highlightFeature(layer, feature);
+                layer.openPopup();
+              },
+              blur: () => {
+                resetHighlight(layer, feature);
+                layer.closePopup();
+              }
+            });
+          }
+        }).addTo(map);
+
+        const bounds = worldLayer.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds.pad(0.02));
+        }
+
+        refreshMapStyles();
+      } catch (error) {
+        console.error(error);
+        errorBanner.style.display = 'block';
+        errorBanner.innerHTML = `
+          <strong>Could not load world polygons.</strong><br>
+          The page tried to fetch <code>${WORLD_GEOJSON_URL}</code> and failed.
+          If you are testing in a tightly locked-down local environment, download that GeoJSON file next to this HTML page and change
+          <code>WORLD_GEOJSON_URL</code> to <code>'./countries.geojson'</code>.
+        `;
+      }
+    }
+
+    renderLegend();
+    renderFilters();
+    renderStatusCards();
+    updateCountryCount();
+    loadWorld();
+  </script>
+</body>
+</html>
