@@ -43,8 +43,8 @@ If your work starts to move in this direction, it likely falls under **Tier 2*
 ### 2. Basic setup
 - Create a new folder under `/docs/` using a short, descriptive name
 - Your folder should include at minimum:
--- `index.html` (the prototype)
--- Any required JS / CSS files
+  a) `index.html` (the prototype)
+  b) Any required JS / CSS files
 
 A small `README.md` inside the prototype folder is encouraged, especially if the logic is not obvious.
 
