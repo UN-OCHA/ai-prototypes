@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Humanitarian Funding Dashboard – Global Crisis Overview</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --ocha-blue: #005b9a;
+      --ocha-blue-dark: #003f6b;
+      --ocha-cyan: #00a9e0;
+      --ocha-red: #d94f4f;
+      --ocha-red-soft: #fdecec;
+      --ocha-green: #0f9d8a;
+      --ocha-gray-50: #f7f9fc;
+      --ocha-gray-100: #eef2f6;
+      --ocha-gray-200: #dde5ed;
+      --ocha-gray-300: #c7d1db;
+      --ocha-gray-500: #6b7785;
+      --ocha-gray-700: #334155;
+      --ocha-gray-900: #0f172a;
+      --card-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --radius: 16px;
+      --radius-sm: 12px;
+      --max-width: 1440px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ocha-gray-900);
+      background: linear-gradient(180deg, #f2f7fb 0%, #f8fafc 22%, #ffffff 100%);
+      line-height: 1.45;
+    }
+    .top-accent {
+      height: 8px;
+      background: linear-gradient(90deg, var(--ocha-blue) 0%, var(--ocha-cyan) 55%, #7fd2ff 100%);
+    }
+    .container {
+      width: min(var(--max-width), calc(100% - 2rem));
+      margin: 0 auto;
+    }
+    .disclaimer {
+      background: #fff4df;
+      border-bottom: 1px solid #f3deb3;
+      color: #734b00;
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    header {
+      padding: 1.5rem 0 1rem;
+    }
+    .header-card {
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0,91,154,0.08);
+      box-shadow: var(--card-shadow);
+      border-radius: calc(var(--radius) + 4px);
+      padding: 1.25rem 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      color: var(--ocha-blue);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .eyebrow .dot {
+      width: 10px; height: 10px; border-radius: 50%; background: var(--ocha-cyan);
+      box-shadow: 0 0 0 4px rgba(0,169,224,0.15);
+    }
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: clamp(1.7rem, 2vw, 2.4rem);
+      color: var(--ocha-blue-dark);
+      line-height: 1.15;
+    }
+    .subtitle {
+      color: var(--ocha-gray-500);
+      font-size: 0.98rem;
+    }
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .refresh-btn {
+      border: none;
+      background: linear-gradient(135deg, var(--ocha-blue) 0%, var(--ocha-cyan) 100%);
+      color: white;
+      font-weight: 700;
+      padding: 0.75rem 1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(0, 91, 154, 0.16);
+    }
+    .refresh-btn:hover { transform: translateY(-1px); }
+    .updated-pill {
+      background: var(--ocha-gray-100);
+      padding: 0.65rem 0.85rem;
+      border-radius: 999px;
+      color: var(--ocha-gray-700);
+      font-size: 0.92rem;
+      border: 1px solid var(--ocha-gray-200);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.2rem;
+      padding-bottom: 2rem;
+    }
+
+    .section-card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      padding: 1rem;
+      border: 1px solid rgba(148,163,184,0.18);
+    }
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .section-heading h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--ocha-blue-dark);
+    }
+    .section-heading p {
+      margin: 0.3rem 0 0;
+      color: var(--ocha-gray-500);
+      max-width: 72ch;
+      font-size: 0.96rem;
+    }
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px; height: 20px;
+      font-size: 0.82rem;
+      border-radius: 50%;
+      background: var(--ocha-gray-100);
+      color: var(--ocha-blue-dark);
+      cursor: help;
+      font-weight: 700;
+      border: 1px solid var(--ocha-gray-200);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .stat-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      border: 1px solid rgba(0,91,154,0.08);
+      min-height: 124px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, rgba(0,91,154,0.14), rgba(0,169,224,0.45));
+    }
+    .stat-card.warning { background: linear-gradient(180deg, #fffafa 0%, #fff3f3 100%); }
+    .stat-label {
+      color: var(--ocha-gray-500);
+      font-size: 0.84rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+    }
+    .stat-value {
+      font-size: clamp(1.4rem, 2vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      color: var(--ocha-gray-900);
+    }
+    .stat-subtext {
+      color: var(--ocha-gray-500);
+      font-size: 0.88rem;
+    }
+    .summary-banner {
+      background: linear-gradient(135deg, rgba(0,91,154,0.09), rgba(0,169,224,0.12));
+      padding: 0.9rem 1rem;
+      border-radius: var(--radius-sm);
+      color: var(--ocha-blue-dark);
+      font-size: 1rem;
+      border: 1px solid rgba(0,91,154,0.1);
+      margin: 0.25rem 0 0.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 1rem;
+    }
+
+    .chart-shell, .panel-shell {
+      background: var(--ocha-gray-50);
+      border: 1px solid var(--ocha-gray-200);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      min-height: 340px;
+    }
+    canvas { width: 100% !important; height: 100% !important; }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--ocha-gray-200);
+      background: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+    th, td {
+      padding: 0.8rem 0.85rem;
+      text-align: left;
+      border-bottom: 1px solid var(--ocha-gray-100);
+      font-size: 0.94rem;
+    }
+    th {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ocha-gray-500);
+      background: var(--ocha-gray-50);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tbody tr:nth-child(even) { background: #fbfdff; }
+    tbody tr:hover { background: #eef8ff; }
+    tbody tr.clickable { cursor: pointer; }
+    .flag {
+      color: white;
+      background: var(--ocha-red);
+      border-radius: 999px;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-left: 0.45rem;
+      vertical-align: middle;
+    }
+    .coverage-low { color: var(--ocha-red); font-weight: 800; }
+    .coverage-mid { color: #8a6d00; font-weight: 800; }
+    .coverage-good { color: var(--ocha-green); font-weight: 800; }
+    .small-muted { color: var(--ocha-gray-500); font-size: 0.82rem; }
+
+    .country-layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+    .selector-box {
+      background: var(--ocha-gray-50);
+      border: 1px solid var(--ocha-gray-200);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      position: sticky;
+      top: 1rem;
+    }
+    .selector-box label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--ocha-gray-700);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.55rem;
+    }
+    select {
+      width: 100%;
+      padding: 0.85rem 0.9rem;
+      border-radius: 12px;
+      border: 1px solid var(--ocha-gray-300);
+      font-size: 1rem;
+      background: white;
+      color: var(--ocha-gray-900);
+      margin-bottom: 0.9rem;
+    }
+    .hint-box {
+      color: var(--ocha-gray-500);
+      font-size: 0.92rem;
+      background: white;
+      border: 1px dashed var(--ocha-gray-300);
+      padding: 0.8rem;
+      border-radius: 12px;
+    }
+    .country-shell {
+      min-height: 300px;
+      background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+      border: 1px solid var(--ocha-gray-200);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+    }
+    .country-hero {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.9rem;
+    }
+    .country-hero h3 {
+      margin: 0 0 0.25rem;
+      font-size: 1.3rem;
+      color: var(--ocha-blue-dark);
+    }
+    .country-meta {
+      color: var(--ocha-gray-500);
+      font-size: 0.95rem;
+    }
+    .country-kpis {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .kpi-card {
+      background: var(--ocha-gray-50);
+      border: 1px solid var(--ocha-gray-200);
+      border-radius: 14px;
+      padding: 0.85rem;
+    }
+    .kpi-card .label {
+      color: var(--ocha-gray-500);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 0.45rem;
+    }
+    .kpi-card .value {
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .progress-panel {
+      background: var(--ocha-gray-50);
+      border-radius: 14px;
+      padding: 1rem;
+      border: 1px solid var(--ocha-gray-200);
+      margin-bottom: 1rem;
+    }
+    .progress-track {
+      width: 100%;
+      height: 16px;
+      background: #ebeff3;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      margin-top: 0.5rem;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--ocha-green), var(--ocha-cyan));
+      border-radius: 999px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .detail-block {
+      background: white;
+      border: 1px solid var(--ocha-gray-200);
+      border-radius: 14px;
+      padding: 1rem;
+    }
+    .detail-block h4 {
+      margin: 0 0 0.7rem;
+      color: var(--ocha-blue-dark);
+      font-size: 1rem;
+    }
+    .detail-block ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+    .detail-block li { margin-bottom: 0.5rem; }
+    .detail-block.reports li a {
+      color: var(--ocha-blue);
+      text-decoration: none;
+    }
+    .detail-block.reports li a:hover { text-decoration: underline; }
+    .quote-like {
+      color: var(--ocha-gray-700);
+      font-style: italic;
+      font-size: 0.92rem;
+    }
+
+    .bottom-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+      gap: 1rem;
+      align-items: start;
+    }
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .alert-item {
+      background: linear-gradient(180deg, #ffffff 0%, #fff9f9 100%);
+      border: 1px solid #f4d5d5;
+      border-left: 5px solid var(--ocha-red);
+      border-radius: 14px;
+      padding: 0.9rem 0.95rem;
+    }
+    .alert-item .title {
+      font-weight: 800;
+      color: var(--ocha-gray-900);
+      margin-bottom: 0.25rem;
+    }
+    .alert-item .meta, .alert-item .desc {
+      color: var(--ocha-gray-600);
+      font-size: 0.92rem;
+    }
+    .spinner, .loading-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--ocha-gray-500);
+      font-size: 0.95rem;
+    }
+    .spinner::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0,91,154,0.16);
+      border-top-color: var(--ocha-blue);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .note-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      background: #f0f8ff;
+      color: var(--ocha-blue-dark);
+      border: 1px solid #d7ebfb;
+      font-size: 0.84rem;
+      font-weight: 700;
+      margin-top: 0.75rem;
+    }
+    .error-box {
+      background: #fff5f5;
+      border: 1px solid #f1c9c9;
+      color: #7a3030;
+      padding: 0.9rem 1rem;
+      border-radius: 12px;
+      font-size: 0.94rem;
+    }
+    footer {
+      margin: 1rem 0 2rem;
+      color: var(--ocha-gray-500);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    @media (max-width: 1180px) {
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-2, .bottom-layout, .country-layout { grid-template-columns: 1fr; }
+      .country-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .detail-grid { grid-template-columns: 1fr; }
+      .selector-box { position: static; }
+    }
+    @media (max-width: 760px) {
+      .container { width: min(var(--max-width), calc(100% - 1rem)); }
+      .header-card, .section-card { padding: 0.95rem; }
+      .stats-grid, .country-kpis { grid-template-columns: 1fr; }
+      th, td { padding: 0.7rem 0.65rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-accent"></div>
+  <div class="disclaimer">Disclaimer: Proof of Concept – neither official nor for decision‑making; Created with CoPilot by Andrej Verity; Content not verified for accuracy.</div>
+
+  <header class="container">
+    <div class="header-card">
+      <div>
+        <div class="eyebrow"><span class="dot"></span> UNOCHA senior leadership view</div>
+        <h1>Humanitarian Funding Dashboard – Global Crisis Overview</h1>
+        <div class="subtitle">Last updated: <span id="last-updated">Loading…</span></div>
+      </div>
+      <div class="header-actions">
+        <div class="updated-pill" id="api-status">Initializing data sources…</div>
+        <button class="refresh-btn" id="refresh-btn" type="button">Refresh data</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="section-card" id="global-snapshot">
+      <div class="section-heading">
+        <div>
+          <h2>Global snapshot</h2>
+          <p>At-a-glance status of humanitarian requirements and funding progress across current appeals and crises.</p>
+        </div>
+      </div>
+      <div class="stats-grid" id="global-stats">
+        <div class="stat-card"><div class="spinner">Loading global snapshot…</div></div>
+        <div class="stat-card"><div class="spinner">Loading global snapshot…</div></div>
+        <div class="stat-card"><div class="spinner">Loading global snapshot…</div></div>
+        <div class="stat-card"><div class="spinner">Loading global snapshot…</div></div>
+      </div>
+      <div class="summary-banner" id="global-summary">Loading global funding summary…</div>
+      <div class="grid-2">
+        <div class="chart-shell">
+          <div class="section-heading" style="margin-bottom:0.5rem;">
+            <div>
+              <h2>Global funding gap</h2>
+              <p>Funded versus unfunded humanitarian requirements.</p>
+            </div>
+          </div>
+          <div style="height: 290px;"><canvas id="global-gap-chart"></canvas></div>
+        </div>
+        <div class="panel-shell" id="gap-highlights">
+          <div class="section-heading" style="margin-bottom:0.6rem;">
+            <div>
+              <h2>Reading guide</h2>
+              <p>Quick interpretation notes for senior readers.</p>
+            </div>
+          </div>
+          <div id="gap-guide-content" class="loading-line">Global metrics will appear here once data loads.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="underfunded-section">
+      <div class="section-heading">
+        <div>
+          <h2>Top underfunded crises</h2>
+          <p>Ranked by lowest funding coverage. Click a country or plan to open the country detail panel below.</p>
+        </div>
+        <div class="small-muted">Coverage % <span class="info-badge" title="Coverage percentage = funding received ÷ funding requirements">i</span></div>
+      </div>
+      <div class="table-wrap">
+        <table class="crisis-table">
+          <thead>
+            <tr>
+              <th>Country / Plan</th>
+              <th>Requirements (USD)</th>
+              <th>Funding (USD)</th>
+              <th>Coverage %</th>
+              <th>People in Need</th>
+            </tr>
+          </thead>
+          <tbody id="underfunded-body">
+            <tr><td colspan="5"><div class="spinner">Loading crisis data…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section-card" id="country-detail">
+      <div class="section-heading">
+        <div>
+          <h2>Country detail</h2>
+          <p>Select a country or click a row in the table above to drill into humanitarian requirements, funding status, pooled funds, and latest reports.</p>
+        </div>
+      </div>
+      <div class="country-layout">
+        <aside class="selector-box">
+          <label for="country-select">Select country / crisis</label>
+          <select id="country-select">
+            <option value="">Select a country to see details</option>
+          </select>
+          <div class="hint-box">Tip: click any country row in the underfunded table for a quick jump to this section.</div>
+          <div class="note-chip">No emblem or logo included in this PoC by design.</div>
+        </aside>
+        <div class="country-shell" id="country-shell">
+          <div class="small-muted">Select a country to see details.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bottom-layout">
+      <div class="section-card" id="trends-section">
+        <div class="section-heading">
+          <div>
+            <h2>Global trends</h2>
+            <p>Historic multi-year funding performance, plus current year monthly funding flow compared with the previous year.</p>
+          </div>
+        </div>
+        <div class="chart-shell" style="min-height: 380px; margin-bottom: 1rem;">
+          <div style="height: 320px;"><canvas id="trend-chart"></canvas></div>
+          <div class="note-chip" id="trend-note">Annotation will appear when trend data is ready.</div>
+        </div>
+        <div class="chart-shell" style="min-height: 320px;">
+          <div style="height: 260px;"><canvas id="monthly-chart"></canvas></div>
+        </div>
+      </div>
+
+      <aside class="section-card" id="alerts-section">
+        <div class="section-heading">
+          <div>
+            <h2>Alerts &amp; new events</h2>
+            <p>New disasters, warnings, or notable developments from public humanitarian sources.</p>
+          </div>
+        </div>
+        <div class="alert-list" id="alerts-list">
+          <div class="spinner">Loading alerts…</div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="container">
+    Data sources: OCHA FTS / HDX, CERF, CBPF, ReliefWeb – Page refreshes data on demand. © OCHA / Proof-of-concept only.
+  </footer>
+
+  <script>
+    const CONFIG = {
+      currentYear: new Date().getFullYear(),
+      previousYear: new Date().getFullYear() - 1,
+      warningFundedThreshold: 30,
+      criticalCoverageThreshold: 15,
+      reliefWebAppName: 'ocha-ai-vibe-coding-testing-449L1s',
+      hdxApiBase: 'https://data.humdata.org/api/3/action',
+      hdxGlobalDataset: 'global-requirements-and-funding-data',
+      // Placeholder for future integration with key-figures APIs that require credentials.
+      apiKeys: {
+        hpcKeyFigures: ''
+      },
+      fallback: {
+        global: { requirements: 52000000000, funding: 14800000000, peopleInNeed: 305000000 },
+        crises: [
+          { name: 'Yemen', iso3: 'YEM', year: 2026, requirements: 2160000000, funding: 264000000, peopleInNeed: 17300000, peopleTargeted: 11800000, plan: 'Humanitarian Response Plan', cerf: 18000000, cbpf: 39000000, topDonors: [{name:'United States', amount:100000000},{name:'European Commission', amount:42000000},{name:'Germany', amount:26000000}] },
+          { name: 'Syria', iso3: 'SYR', year: 2026, requirements: 4100000000, funding: 740000000, peopleInNeed: 16100000, peopleTargeted: 10500000, plan: 'Humanitarian Response Plan', cerf: 15000000, cbpf: 27000000, topDonors: [{name:'Germany', amount:124000000},{name:'United States', amount:118000000},{name:'United Kingdom', amount:53000000}] },
+          { name: 'Sudan', iso3: 'SDN', year: 2026, requirements: 4300000000, funding: 645000000, peopleInNeed: 24800000, peopleTargeted: 14600000, plan: 'Humanitarian Response Plan', cerf: 21000000, cbpf: 82000000, topDonors: [{name:'United States', amount:162000000},{name:'European Commission', amount:86000000},{name:'Sweden', amount:31000000}] },
+          { name: 'Haiti', iso3: 'HTI', year: 2026, requirements: 674000000, funding: 73000000, peopleInNeed: 5800000, peopleTargeted: 3300000, plan: 'Humanitarian Response Plan', cerf: 9000000, cbpf: 0, topDonors: [{name:'United States', amount:22000000},{name:'Canada', amount:8000000},{name:'ECHO', amount:7600000}] },
+          { name: 'Myanmar', iso3: 'MMR', year: 2026, requirements: 1060000000, funding: 154000000, peopleInNeed: 19800000, peopleTargeted: 6100000, plan: 'Humanitarian Response Plan', cerf: 12000000, cbpf: 0, topDonors: [{name:'United States', amount:40000000},{name:'United Kingdom', amount:13000000},{name:'Japan', amount:10000000}] },
+          { name: 'Afghanistan', iso3: 'AFG', year: 2026, requirements: 2420000000, funding: 375000000, peopleInNeed: 22800000, peopleTargeted: 16100000, plan: 'Humanitarian Response Plan', cerf: 14000000, cbpf: 0, topDonors: [{name:'United States', amount:91000000},{name:'European Commission', amount:30000000},{name:'Sweden', amount:11000000}] },
+          { name: 'Democratic Republic of the Congo', iso3: 'COD', year: 2026, requirements: 2600000000, funding: 410000000, peopleInNeed: 25600000, peopleTargeted: 11400000, plan: 'Humanitarian Response Plan', cerf: 19000000, cbpf: 46000000, topDonors: [{name:'United States', amount:122000000},{name:'ECHO', amount:39000000},{name:'Germany', amount:32000000}] },
+          { name: 'Somalia', iso3: 'SOM', year: 2026, requirements: 1680000000, funding: 250000000, peopleInNeed: 6900000, peopleTargeted: 5300000, plan: 'Humanitarian Response Plan', cerf: 8000000, cbpf: 12000000, topDonors: [{name:'United States', amount:51000000},{name:'Germany', amount:16000000},{name:'ECHO', amount:15000000}] },
+          { name: 'Ethiopia', iso3: 'ETH', year: 2026, requirements: 3950000000, funding: 710000000, peopleInNeed: 21100000, peopleTargeted: 15400000, plan: 'Humanitarian Response Plan', cerf: 5000000, cbpf: 28000000, topDonors: [{name:'United States', amount:180000000},{name:'ECHO', amount:57000000},{name:'Germany', amount:33000000}] },
+          { name: 'Ukraine', iso3: 'UKR', year: 2026, requirements: 3150000000, funding: 970000000, peopleInNeed: 12900000, peopleTargeted: 8600000, plan: 'Humanitarian Response Plan', cerf: 0, cbpf: 155000000, topDonors: [{name:'United States', amount:300000000},{name:'Germany', amount:120000000},{name:'European Commission', amount:90000000}] }
+        ],
+        trends: [
+          { year: 2017, requirements: 23000000000, funding: 12700000000 },
+          { year: 2018, requirements: 25100000000, funding: 13500000000 },
+          { year: 2019, requirements: 28600000000, funding: 15300000000 },
+          { year: 2020, requirements: 38500000000, funding: 17700000000 },
+          { year: 2021, requirements: 37400000000, funding: 16800000000 },
+          { year: 2022, requirements: 41200000000, funding: 18700000000 },
+          { year: 2023, requirements: 56300000000, funding: 20300000000 },
+          { year: 2024, requirements: 49000000000, funding: 17700000000 },
+          { year: 2025, requirements: 47500000000, funding: 16500000000 },
+          { year: 2026, requirements: 52000000000, funding: 14800000000 }
+        ],
+        monthlyFunding: {
+          2025: [650, 780, 910, 1200, 980, 1100, 1330, 1400, 990, 1040, 870, 920],
+          2026: [720, 840, 1900, 1430, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        alerts: [
+          { title: 'Emerging disaster monitoring', meta: 'Fallback content', description: 'ReliefWeb disaster feed unavailable during this session. Replace with live ReliefWeb disaster entries once API access succeeds.' },
+          { title: 'CERF / CBPF note', meta: 'Static note', description: 'Add any global pooled-fund note or allocation schedule here if an authoritative API or internal feed becomes available.' }
+        ]
+      }
+    };
+
+    const state = {
+      global: null,
+      crises: [],
+      trends: [],
+      monthlyFunding: null,
+      alerts: [],
+      selectedCountry: null,
+      countryCache: new Map(),
+      charts: {}
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function pickField(obj, candidates) {
+      const lowered = Object.keys(obj || {}).reduce((acc, key) => {
+        acc[key.toLowerCase()] = obj[key];
+        return acc;
+      }, {});
+      for (const candidate of candidates) {
+        if (candidate.toLowerCase() in lowered) return lowered[candidate.toLowerCase()];
+      }
+      return undefined;
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      let current = '';
+      let row = [];
+      let inQuotes = false;
+      const pushCell = () => { row.push(current); current = ''; };
+      const pushRow = () => {
+        if (row.length === 1 && row[0] === '' && rows.length && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') return;
+        rows.push(row); row = [];
+      };
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+        if (char === '"') {
+          if (inQuotes && next === '"') { current += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if (char === ',' && !inQuotes) {
+          pushCell();
+        } else if ((char === '\n' || char === '\r') && !inQuotes) {
+          if (char === '\r' && next === '\n') i++;
+          pushCell();
+          pushRow();
+        } else {
+          current += char;
+        }
+      }
+      pushCell();
+      if (row.length) pushRow();
+      const [header, ...body] = rows.filter(r => r.some(cell => String(cell).trim() !== ''));
+      if (!header) return [];
+      return body.map(cells => Object.fromEntries(header.map((h, idx) => [String(h).trim(), (cells[idx] || '').trim()])));
+    }
+
+    function toNumber(value) {
+      if (value === null || value === undefined || value === '') return 0;
+      if (typeof value === 'number') return value;
+      const cleaned = String(value).replace(/[$,\s]/g, '').replace(/\((.*)\)/, '-$1');
+      const parsed = Number(cleaned);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatUSD(value, compact = true) {
+      if (!Number.isFinite(value)) return 'N/A';
+      if (compact) {
+        if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+        if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+        if (Math.abs(value) >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
+      }
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+    }
+
+    function formatPeople(value) {
+      if (!Number.isFinite(value) || value <= 0) return 'N/A';
+      if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+      if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+      return new Intl.NumberFormat('en-US').format(value);
+    }
+
+    function formatPct(value) {
+      return Number.isFinite(value) ? `${value.toFixed(1)}%` : 'N/A';
+    }
+
+    function coverageClass(pct) {
+      if (pct < CONFIG.criticalCoverageThreshold) return 'coverage-low';
+      if (pct < CONFIG.warningFundedThreshold) return 'coverage-mid';
+      return 'coverage-good';
+    }
+
+    function setLastUpdated(date = new Date()) {
+      $('#last-updated').textContent = date.toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function setApiStatus(text, isError = false) {
+      const el = $('#api-status');
+      el.textContent = text;
+      el.style.background = isError ? '#fff4f4' : '';
+      el.style.borderColor = isError ? '#f0caca' : '';
+      el.style.color = isError ? '#7a3030' : '';
+    }
+
+    async function fetchJSON(url, options = {}) {
+      const response = await fetch(url, options);
+      if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+      return response.json();
+    }
+
+    async function fetchText(url, options = {}) {
+      const response = await fetch(url, options);
+      if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+      return response.text();
+    }
+
+    async function fetchHDXPackage(datasetId) {
+      const url = `${CONFIG.hdxApiBase}/package_show?id=${encodeURIComponent(datasetId)}`;
+      return fetchJSON(url);
+    }
+
+    function findResourceByName(packageResult, nameFragment) {
+      const resources = packageResult?.result?.resources || [];
+      return resources.find(r => (r.name || '').toLowerCase().includes(nameFragment.toLowerCase()));
+    }
+
+    function normalizeAnnualRows(rows) {
+      return rows
+        .map(row => {
+          const year = Number(pickField(row, ['year', 'Year', 'fiscal_year', 'Fiscal Year']));
+          const requirements = toNumber(pickField(row, ['requirements_usd', 'requirements', 'Requirements (USD)', 'requirements funding requirements', 'requirements_amount', 'Funding requirements']));
+          const funding = toNumber(pickField(row, ['funding_usd', 'funding', 'Funding (USD)', 'total_funding', 'funded_amount', 'Total funding']));
+          return { year, requirements, funding };
+        })
+        .filter(d => Number.isFinite(d.year) && d.year > 1900 && (d.requirements > 0 || d.funding > 0))
+        .sort((a, b) => a.year - b.year);
+    }
+
+    function monthLabels() {
+      return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    }
+
+    async function loadGlobalData() {
+      try {
+        const pkg = await fetchHDXPackage(CONFIG.hdxGlobalDataset);
+        const globalResource = findResourceByName(pkg, 'fts_requirements_funding_global.csv');
+        const annualResource = globalResource;
+        if (!annualResource?.url) throw new Error('Global annual CSV resource not found on HDX package.');
+        const annualCSV = await fetchText(annualResource.url);
+        const annualRows = normalizeAnnualRows(parseCSV(annualCSV));
+        console.log('Global annual rows', annualRows);
+        let current = annualRows.find(r => r.year === CONFIG.currentYear) || annualRows[annualRows.length - 1];
+        if (!current) throw new Error('Unable to derive a current-year global row from HDX global CSV.');
+
+        // Attempt monthly funding aggregation from incoming funding CSV. If schema or CORS fails, fallback data is used.
+        let monthlyFunding = null;
+        try {
+          const monthlyResource = findResourceByName(pkg, 'fts_incoming_funding_global.csv');
+          if (monthlyResource?.url) {
+            const monthlyRows = parseCSV(await fetchText(monthlyResource.url));
+            monthlyFunding = aggregateMonthlyFunding(monthlyRows);
+            console.log('Monthly funding aggregate', monthlyFunding);
+          }
+        } catch (monthlyErr) {
+          console.warn('Monthly funding aggregation fallback engaged:', monthlyErr);
+        }
+
+        // People in need is not consistently exposed in public FTS global CSV; fallback/static value is used unless another API is wired in.
+        state.global = {
+          requirements: current.requirements || CONFIG.fallback.global.requirements,
+          funding: current.funding || CONFIG.fallback.global.funding,
+          peopleInNeed: CONFIG.fallback.global.peopleInNeed
+        };
+        state.trends = annualRows.length ? annualRows : CONFIG.fallback.trends;
+        state.monthlyFunding = monthlyFunding || CONFIG.fallback.monthlyFunding;
+        return true;
+      } catch (error) {
+        console.error('Global data load failed, using fallback:', error);
+        state.global = { ...CONFIG.fallback.global };
+        state.trends = [...CONFIG.fallback.trends];
+        state.monthlyFunding = { ...CONFIG.fallback.monthlyFunding };
+        return false;
+      }
+    }
+
+    function aggregateMonthlyFunding(rows) {
+      const result = {
+        [CONFIG.previousYear]: new Array(12).fill(0),
+        [CONFIG.currentYear]: new Array(12).fill(0)
+      };
+      const dateCandidates = ['transaction_date', 'date', 'paid_date', 'commitment_date', 'Date', 'Updated Date'];
+      const valueCandidates = ['amount_usd', 'paid_amount', 'value_usd', 'Funding (USD)', 'amount', 'usd_amount'];
+      let matched = 0;
+      rows.forEach(row => {
+        const dateValue = pickField(row, dateCandidates);
+        const value = toNumber(pickField(row, valueCandidates));
+        if (!dateValue || !value) return;
+        const dt = new Date(dateValue);
+        if (Number.isNaN(dt.getTime())) return;
+        const year = dt.getUTCFullYear();
+        const month = dt.getUTCMonth();
+        if (result[year]) {
+          result[year][month] += value / 1e6; // store in USD millions for readability
+          matched++;
+        }
+      });
+      if (!matched) throw new Error('Monthly CSV schema could not be matched.');
+      return result;
+    }
+
+    function normalizeCrisisArray(raw) {
+      if (!Array.isArray(raw)) return [];
+      return raw.map(item => {
+        const name = pickField(item, ['name', 'country', 'location_name', 'plan_name', 'plan']) || pickField(item, ['country_name']) || 'Unknown';
+        const requirements = toNumber(pickField(item, ['requirements', 'requirements_usd', 'revised_requirements', 'total_requirements', 'required_usd']));
+        const funding = toNumber(pickField(item, ['funding', 'funding_usd', 'total_funding', 'paid_amount', 'covered_usd']));
+        const peopleInNeed = toNumber(pickField(item, ['people_in_need', 'pin', 'people_in_need_total', 'peopleinneed']));
+        const peopleTargeted = toNumber(pickField(item, ['people_targeted', 'targeted', 'people_targeted_total']));
+        const iso3 = pickField(item, ['iso3', 'location_code', 'country_code']);
+        const year = Number(pickField(item, ['year', 'appeal_year'])) || CONFIG.currentYear;
+        return {
+          name,
+          iso3,
+          year,
+          plan: pickField(item, ['plan', 'plan_name', 'appeal_name']) || 'Humanitarian Response Plan',
+          requirements,
+          funding,
+          peopleInNeed,
+          peopleTargeted,
+          coverage: requirements > 0 ? (funding / requirements) * 100 : 0,
+          topDonors: item.topDonors || []
+        };
+      }).filter(c => c.name && (c.requirements > 0 || c.funding > 0));
+    }
+
+    async function fetchFTSCrisesFromPublicApi() {
+      // NOTE: The public FTS API has evolved over time. This PoC tries a few likely public endpoint patterns.
+      // If the published schema changes, adjust this list in one place.
+      const candidates = [
+        `https://api.hpc.tools/v2/public/fts/appeals/summary?year=${CONFIG.currentYear}`,
+        `https://api.hpc.tools/v1/public/fts/appeals/summary?year=${CONFIG.currentYear}`,
+        `https://api.hpc.tools/public/fts/appeals/summary?year=${CONFIG.currentYear}`,
+        `https://api.hpc.tools/v2/public/fts/flow/summary?year=${CONFIG.currentYear}&groupby=plan`,
+        `https://api.hpc.tools/v1/public/fts/flow/summary?year=${CONFIG.currentYear}&groupby=plan`
+      ];
+      for (const url of candidates) {
+        try {
+          const json = await fetchJSON(url);
+          const potentialArrays = [json?.data, json?.result?.data, json?.result, json?.results, json?.rows].filter(Array.isArray);
+          for (const arr of potentialArrays) {
+            const normalized = normalizeCrisisArray(arr);
+            if (normalized.length >= 5) {
+              console.log('FTS crises loaded from', url, normalized);
+              return normalized;
+            }
+          }
+        } catch (err) {
+          console.warn('FTS crisis endpoint failed', url, err);
+        }
+      }
+      throw new Error('All public FTS endpoint candidates failed for crisis summaries.');
+    }
+
+    async function loadCrises() {
+      try {
+        const crises = await fetchFTSCrisesFromPublicApi();
+        state.crises = crises.map(c => ({ ...c, coverage: c.requirements > 0 ? (c.funding / c.requirements) * 100 : 0 }))
+          .sort((a, b) => a.coverage - b.coverage);
+        if (!state.crises.length) throw new Error('No crisis rows returned from FTS candidates.');
+        return true;
+      } catch (error) {
+        console.error('Falling back to embedded crisis sample data:', error);
+        state.crises = CONFIG.fallback.crises.map(c => ({ ...c, coverage: c.requirements > 0 ? (c.funding / c.requirements) * 100 : 0 }))
+          .sort((a, b) => a.coverage - b.coverage);
+        return false;
+      }
+    }
+
+    function renderGlobalStats() {
+      const { requirements, funding, peopleInNeed } = state.global || CONFIG.fallback.global;
+      const pctFunded = requirements > 0 ? (funding / requirements) * 100 : 0;
+      const gap = Math.max(0, requirements - funding);
+      const statsHTML = [
+        { label: 'Total Humanitarian Requirements', value: formatUSD(requirements), subtext: 'Global humanitarian requirements' },
+        { label: 'Funding Received', value: formatUSD(funding), subtext: 'Funding tracked to date' },
+        { label: 'Funded', value: formatPct(pctFunded), subtext: 'Share of requirements covered', warning: pctFunded < CONFIG.warningFundedThreshold },
+        { label: 'People in Need', value: formatPeople(peopleInNeed), subtext: 'Static placeholder until live key-figure API is wired' }
+      ].map(stat => `
+        <div class="stat-card ${stat.warning ? 'warning' : ''}">
+          <div class="stat-label">${stat.label}</div>
+          <div class="stat-value">${stat.value}</div>
+          <div class="stat-subtext">${stat.subtext}</div>
+        </div>
+      `).join('');
+      $('#global-stats').innerHTML = statsHTML;
+      $('#global-summary').textContent = `Global appeals are ${pctFunded.toFixed(1)}% funded, leaving a ${(100 - pctFunded).toFixed(1)}% gap (${formatUSD(gap)} unfunded).`;
+      $('#gap-guide-content').innerHTML = `
+        <p><strong>${formatUSD(funding)}</strong> is funded against <strong>${formatUSD(requirements)}</strong> in requirements.</p>
+        <p>The current unfunded gap stands at <strong>${formatUSD(gap)}</strong>. ${pctFunded < CONFIG.warningFundedThreshold ? 'This is below the attention threshold and should be monitored closely.' : 'Coverage is above the warning threshold, but significant needs remain.'}</p>
+        <p class="small-muted">People in need is shown as a placeholder global value in this proof-of-concept because a single unauthenticated global public PIN feed was not confirmed during code generation.</p>
+      `;
+      renderGlobalGapChart(funding, gap, pctFunded);
+    }
+
+    function renderGlobalGapChart(funding, gap, pctFunded) {
+      const ctx = $('#global-gap-chart').getContext('2d');
+      if (state.charts.globalGap) state.charts.globalGap.destroy();
+      state.charts.globalGap = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: [`Funded (${formatPct(pctFunded)})`, `Gap (${formatPct(100 - pctFunded)})`],
+          datasets: [{
+            data: [funding, gap],
+            backgroundColor: ['#0f9d8a', '#f2b5b5'],
+            borderColor: ['#0f9d8a', '#f2b5b5'],
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.label}: ${formatUSD(ctx.raw, false)}`
+              }
+            }
+          },
+          cutout: '62%'
+        }
+      });
+    }
+
+    function renderCrisesTable() {
+      const body = $('#underfunded-body');
+      if (!state.crises.length) {
+        body.innerHTML = '<tr><td colspan="5"><div class="error-box">Crisis data unavailable.</div></td></tr>';
+        return;
+      }
+      body.innerHTML = state.crises.slice(0, 10).map(crisis => {
+        const lowFlag = crisis.coverage < CONFIG.criticalCoverageThreshold ? '<span class="flag">Alert</span>' : '';
+        return `
+          <tr class="clickable" data-country="${escapeHtml(crisis.name)}">
+            <td><strong>${escapeHtml(crisis.name)}</strong> <span class="small-muted">– ${escapeHtml(crisis.plan || 'Plan')}</span> ${lowFlag}</td>
+            <td>${formatUSD(crisis.requirements)}</td>
+            <td>${formatUSD(crisis.funding)}</td>
+            <td class="${coverageClass(crisis.coverage)}">${formatPct(crisis.coverage)}</td>
+            <td>${formatPeople(crisis.peopleInNeed)}</td>
+          </tr>
+        `;
+      }).join('');
+      $$('#underfunded-body tr[data-country]').forEach(row => {
+        row.addEventListener('click', () => {
+          const country = row.getAttribute('data-country');
+          $('#country-select').value = country;
+          selectCountry(country);
+        });
+      });
+    }
+
+    function populateCountrySelect() {
+      const select = $('#country-select');
+      const options = ['<option value="">Select a country to see details</option>']
+        .concat(state.crises
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(crisis => `<option value="${escapeHtml(crisis.name)}">${escapeHtml(crisis.name)} ${crisis.year ? `(${crisis.year})` : ''}</option>`));
+      select.innerHTML = options.join('');
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function fetchReliefWebReports(countryName) {
+      // Public ReliefWeb API v2: requires appname parameter.
+      const url = `https://api.reliefweb.int/v2/reports?appname=${encodeURIComponent(CONFIG.reliefWebAppName)}&limit=3&preset=latest&query[value]=${encodeURIComponent(countryName)}`;
+      try {
+        const json = await fetchJSON(url);
+        const items = json?.data || [];
+        return items.map(item => ({
+          title: item?.fields?.title || item?.fields?.headline?.title || item?.fields?.name || 'Untitled report',
+          url: item?.fields?.url || item?.fields?.file?.url || item?.href || '#',
+          date: item?.fields?.date?.created || item?.fields?.date?.original || ''
+        })).filter(r => r.title && r.url);
+      } catch (error) {
+        console.warn('ReliefWeb country reports unavailable for', countryName, error);
+        return [];
+      }
+    }
+
+    async function loadAlerts() {
+      const container = $('#alerts-list');
+      container.innerHTML = '<div class="spinner">Loading alerts…</div>';
+      const url = `https://api.reliefweb.int/v2/disasters?appname=${encodeURIComponent(CONFIG.reliefWebAppName)}&limit=5&preset=latest`;
+      try {
+        const json = await fetchJSON(url);
+        const items = (json?.data || []).map(item => ({
+          title: item?.fields?.name || item?.fields?.title || 'New disaster event',
+          meta: [item?.fields?.date?.created, item?.fields?.country?.map?.(c => c.name)?.join(', ')].filter(Boolean).join(' • '),
+          description: item?.fields?.description || 'New disaster entry detected in the ReliefWeb public feed.',
+          url: item?.fields?.url || item?.href || ''
+        }));
+        state.alerts = items.length ? items : CONFIG.fallback.alerts;
+      } catch (error) {
+        console.error('Alerts feed unavailable, using fallback alerts:', error);
+        state.alerts = CONFIG.fallback.alerts;
+      }
+      container.innerHTML = state.alerts.map(alert => `
+        <div class="alert-item">
+          <div class="title">⚠️ ${escapeHtml(alert.title)}</div>
+          <div class="meta">${escapeHtml(alert.meta || 'Public humanitarian source')}</div>
+          <div class="desc">${alert.url ? `<a href="${escapeHtml(alert.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(alert.description)}</a>` : escapeHtml(alert.description)}</div>
+        </div>
+      `).join('');
+    }
+
+    function getCrisisByName(name) {
+      return state.crises.find(c => c.name === name) || CONFIG.fallback.crises.find(c => c.name === name);
+    }
+
+    async function selectCountry(countryName) {
+      if (!countryName) {
+        $('#country-shell').innerHTML = '<div class="small-muted">Select a country to see details.</div>';
+        return;
+      }
+      const crisis = getCrisisByName(countryName);
+      if (!crisis) {
+        $('#country-shell').innerHTML = '<div class="error-box">Country data unavailable.</div>';
+        return;
+      }
+      $('#country-shell').innerHTML = '<div class="spinner">Loading country detail…</div>';
+      document.getElementById('country-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      if (state.countryCache.has(countryName)) {
+        renderCountryDetail(state.countryCache.get(countryName));
+        return;
+      }
+
+      const detail = {
+        ...crisis,
+        coverage: crisis.requirements > 0 ? (crisis.funding / crisis.requirements) * 100 : 0,
+        reports: [],
+        reportsNote: ''
+      };
+
+      try {
+        const reports = await fetchReliefWebReports(countryName);
+        detail.reports = reports;
+        if (!reports.length) {
+          detail.reportsNote = 'No recent ReliefWeb reports were returned by the live API during this session.';
+        }
+      } catch (error) {
+        console.error('Country detail reports failed:', error);
+        detail.reportsNote = 'ReliefWeb report data unavailable.';
+      }
+
+      state.countryCache.set(countryName, detail);
+      renderCountryDetail(detail);
+    }
+
+    function renderCountryDetail(detail) {
+      const gapPct = Math.max(0, 100 - detail.coverage);
+      const progressWidth = `${Math.max(0, Math.min(100, detail.coverage))}%`;
+      const pooledText = `CERF Allocations: ${formatUSD(detail.cerf || 0)}; CBPF: ${formatUSD(detail.cbpf || 0)}`;
+      const donors = (detail.topDonors || []).slice(0, 3);
+      $('#country-shell').innerHTML = `
+        <div class="country-hero">
+          <div>
+            <h3>${escapeHtml(detail.name)} ${detail.year} – ${escapeHtml(detail.plan || 'Humanitarian Response')}</h3>
+            <div class="country-meta">Coverage: <span class="${coverageClass(detail.coverage)}">${formatPct(detail.coverage)}</span> • ${pooledText}</div>
+          </div>
+          <div class="note-chip">Live ReliefWeb country reports + public / fallback funding data</div>
+        </div>
+
+        <div class="country-kpis">
+          <div class="kpi-card"><div class="label">People in Need</div><div class="value">${formatPeople(detail.peopleInNeed)}</div></div>
+          <div class="kpi-card"><div class="label">People Targeted</div><div class="value">${formatPeople(detail.peopleTargeted)}</div></div>
+          <div class="kpi-card"><div class="label">Funding Required</div><div class="value">${formatUSD(detail.requirements)}</div></div>
+          <div class="kpi-card"><div class="label">Funding Received</div><div class="value">${formatUSD(detail.funding)}</div></div>
+          <div class="kpi-card"><div class="label">Funding Gap</div><div class="value">${formatPct(gapPct)}</div></div>
+        </div>
+
+        <div class="progress-panel">
+          <strong>Funding progress</strong>
+          <div class="small-muted">Filled portion = funded; remaining portion = gap.</div>
+          <div class="progress-track"><div class="progress-fill" style="width:${progressWidth}"></div></div>
+          <div class="small-muted" style="margin-top:0.5rem;">${formatUSD(detail.funding)} funded of ${formatUSD(detail.requirements)} required.</div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-block">
+            <h4>Pooled fund contributions</h4>
+            <ul>
+              <li><strong>CERF allocations:</strong> ${formatUSD(detail.cerf || 0)}</li>
+              <li><strong>CBPF allocations:</strong> ${formatUSD(detail.cbpf || 0)}</li>
+            </ul>
+            <p class="small-muted" style="margin-top:0.8rem;">This PoC ships with embedded sample values for selected countries. Wire in CERF / CBPF data-hub APIs here when exact public endpoint schemas are finalized for production use.</p>
+          </div>
+          <div class="detail-block">
+            <h4>Top donors</h4>
+            ${donors.length ? `<ul>${donors.map(d => `<li><strong>${escapeHtml(d.name)}</strong> – ${formatUSD(d.amount)}</li>`).join('')}</ul>` : '<div class="small-muted">Top donor data unavailable for this country.</div>'}
+          </div>
+          <div class="detail-block reports" style="grid-column: 1 / -1;">
+            <h4>Recent reports</h4>
+            ${detail.reports.length ? `
+              <ul>
+                ${detail.reports.map(r => `<li><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title)}</a> <span class="quote-like">${r.date ? `(${new Date(r.date).toLocaleDateString()})` : ''}</span></li>`).join('')}
+              </ul>
+            ` : `<div class="small-muted">${escapeHtml(detail.reportsNote || 'Data unavailable')}</div>`}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTrendCharts() {
+      const trendData = (state.trends || []).map(d => ({ ...d, fundedPct: d.requirements > 0 ? (d.funding / d.requirements) * 100 : 0 }));
+      const trendCtx = $('#trend-chart').getContext('2d');
+      if (state.charts.trend) state.charts.trend.destroy();
+      state.charts.trend = new Chart(trendCtx, {
+        data: {
+          labels: trendData.map(d => d.year),
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Requirements (USD bn)',
+              data: trendData.map(d => +(d.requirements / 1e9).toFixed(2)),
+              backgroundColor: 'rgba(0, 91, 154, 0.18)',
+              borderColor: 'rgba(0, 91, 154, 0.55)',
+              borderWidth: 1,
+              yAxisID: 'y'
+            },
+            {
+              type: 'line',
+              label: 'Funding (USD bn)',
+              data: trendData.map(d => +(d.funding / 1e9).toFixed(2)),
+              borderColor: '#00a9e0',
+              backgroundColor: '#00a9e0',
+              tension: 0.3,
+              yAxisID: 'y'
+            },
+            {
+              type: 'line',
+              label: '% Funded',
+              data: trendData.map(d => +d.fundedPct.toFixed(1)),
+              borderColor: '#d94f4f',
+              backgroundColor: '#d94f4f',
+              tension: 0.3,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'USD billions' }
+            },
+            y1: {
+              beginAtZero: true,
+              max: 100,
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: '% funded' }
+            }
+          },
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { mode: 'index', intersect: false }
+          }
+        }
+      });
+
+      const monthly = state.monthlyFunding || CONFIG.fallback.monthlyFunding;
+      const monthlyCtx = $('#monthly-chart').getContext('2d');
+      if (state.charts.monthly) state.charts.monthly.destroy();
+      state.charts.monthly = new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+          labels: monthLabels(),
+          datasets: [
+            {
+              label: `${CONFIG.previousYear} funding (USD m)`,
+              data: monthly[CONFIG.previousYear] || [],
+              borderColor: '#94a3b8',
+              backgroundColor: '#94a3b8',
+              tension: 0.3
+            },
+            {
+              label: `${CONFIG.currentYear} funding (USD m)`,
+              data: monthly[CONFIG.currentYear] || [],
+              borderColor: '#0f9d8a',
+              backgroundColor: '#0f9d8a',
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'USD millions' } }
+          }
+        }
+      });
+
+      const currentYearMonthly = monthly[CONFIG.currentYear] || [];
+      const maxMonthIndex = currentYearMonthly.indexOf(Math.max(...currentYearMonthly));
+      const note = maxMonthIndex >= 0 && currentYearMonthly[maxMonthIndex] > 0
+        ? `Highest monthly funding flow in ${CONFIG.currentYear} appears in ${monthLabels()[maxMonthIndex]}. Review the underlying appeal events or flash appeals that may explain this peak.`
+        : 'Monthly flow annotations are shown when funding transactions can be aggregated from the public feed.';
+      $('#trend-note').textContent = note;
+    }
+
+    async function initializeDashboard() {
+      setApiStatus('Refreshing public humanitarian sources…');
+      setLastUpdated();
+      const [globalOk, crisesOk] = await Promise.all([loadGlobalData(), loadCrises()]);
+      renderGlobalStats();
+      renderCrisesTable();
+      populateCountrySelect();
+      renderTrendCharts();
+      await loadAlerts();
+      setLastUpdated(new Date());
+      const statusParts = [];
+      statusParts.push(globalOk ? 'Global: live/HDX' : 'Global: fallback');
+      statusParts.push(crisesOk ? 'Crises: live/public API' : 'Crises: fallback');
+      statusParts.push('Reports/alerts: ReliefWeb');
+      setApiStatus(statusParts.join(' • '), !(globalOk && crisesOk));
+    }
+
+    $('#country-select').addEventListener('change', (event) => selectCountry(event.target.value));
+    $('#refresh-btn').addEventListener('click', () => initializeDashboard());
+
+    initializeDashboard().catch(error => {
+      console.error('Dashboard initialization error', error);
+      setApiStatus('One or more feeds failed; fallback data shown where available.', true);
+      $('#global-summary').textContent = 'Data could not be fully refreshed. Some sections may show fallback or unavailable values.';
+    });
+  </script>
+</body>
+</html>
