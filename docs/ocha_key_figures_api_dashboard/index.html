@@ -231,7 +231,7 @@
 
     // Fetch data from the API for the given year.
     async function fetchKeyFigures(year) {
-      const url = '${API_BASE}/KeyFigures?year=${year}';
+      const url = API_BASE + '/KeyFigures?year=' + year;
       try {
         const response = await fetch(url, {
           method: 'GET',
@@ -379,7 +379,7 @@
         // Find the selected country’s data
         const rec = allData.find(r => r.country_iso3 === selectedValue || r.country === selectedValue);
         if (rec) {
-          titleElem.textContent = '${rec.country} - Key Figures ${YEAR}';
+          titleElem.textContent = rec.country + ' - Key Figures ' + YEAR;
           subtitleElem.textContent = '';  // remove subtitle when a country is selected (or we could show a static note)
           renderMetrics(rec, false);
         }
