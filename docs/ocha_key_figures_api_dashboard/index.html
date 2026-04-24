@@ -231,7 +231,7 @@
 
     // Fetch data from the API for the given year.
     async function fetchKeyFigures(year) {
-      const url = \'\${API_BASE}/KeyFigures?year=\${year}\';
+      const url = '${API_BASE}/KeyFigures?year=${year}';
       try {
         const response = await fetch(url, {
           method: 'GET',
