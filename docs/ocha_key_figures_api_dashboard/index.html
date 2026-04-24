@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OCHA Key Figures Dashboard – Proof of Concept</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 
+    OCHA Key Figures Dashboard - Proof of Concept
+    Created by Andrej Verity (via GitHub CoPilot)
+    Description: A single-page HTML dashboard that pulls data from the OCHA Key Figures API and displays a global overview and country-specific key humanitarian figures.
+    This is a standalone file with inline CSS and JavaScript (no external dependencies).
+    
+    Key features:
+    - Displays global humanitarian figures (people in need, people targeted, funding required/received, etc.) for the current year.
+    - Provides a dropdown to filter and view a specific country’s figures.
+    - Includes a top disclaimer banner and a bottom footer with data source information.
+    - Follows OCHA branding guidelines (using OCHA blue and similar color scheme) without using logos.
+    - The OCHA Key Figures API requires an APP-NAME header and an API key for requests. Both are included openly in this client-side code for this proof-of-concept.
+    
+    Note: For a production scenario, exposing an API key in client-side code is not ideal. Here it's done intentionally as per the instructions for a quick demo.
+    
+    The code is heavily commented to aid understanding and future modifications.
+  -->
+  <style>
+    /* --- OCHA Branding Colors (from brand.unocha.org) --- 
+       We will use the official OCHA blue as the primary color.
+       According to OCHA brand guidelines, the main blue is approximately Pantone 279.
+       We'll approximate it with a hex code (e.g., #1A7FBF or #006699 as commonly used on OCHA sites).
+       If exact brand hex codes are known, they can be substituted here.
+    */
+    :root {
+      --ocha-blue: #1A7FBF;  /* OCHA blue (approximate). Another possible hex for OCHA blue: #0A6EB4 or #005B95. */
+      --ocha-orange: #F48B38; /* an accent color from OCHA palette (optional use) */
+      --ocha-gray-light: #f4f4f4;
+      --ocha-gray-dark: #555;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #333;
+    }
+    header {
+      background: var(--ocha-blue);
+      color: #fff;
+      padding: 10px 15px;
+      text-align: center;
+      font-size: 0.95em;
+      font-weight: bold;
+    }
+    /* The disclaimer banner at the top */
+    #disclaimer {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: var(--ocha-blue);
+      margin: 20px 0 10px;
+      font-size: 1.8em;
+    }
+    h2 {
+      text-align: center;
+      color: var(--ocha-blue);
+      margin: 10px 0 20px;
+      font-size: 1.2em;
+      font-weight: normal;
+    }
+    .content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 15px 40px 15px;
+    }
+    /* Dropdown for country selection */
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    select#countrySelect {
+      font-size: 1em;
+      padding: 5px 10px;
+    }
+    /* Metrics card container */
+    .metrics {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+    .metric-card {
+      background: var(--ocha-gray-light);
+      border: 2px solid var(--ocha-blue);
+      border-radius: 8px;
+      padding: 15px;
+      width: 200px;
+      min-height: 120px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .metric-card h3 {
+      margin: 0 0 5px;
+      font-size: 1.0em;
+      color: var(--ocha-blue);
+    }
+    .metric-value {
+      font-size: 1.6em;
+      font-weight: bold;
+      color: #000;
+    }
+    .metric-unit {
+      font-size: 0.9em;
+      color: #000;
+    }
+    .metric-source {
+      position: absolute;
+      bottom: 5px;
+      right: 8px;
+      font-size: 0.7em;
+      color: var(--ocha-gray-dark);
+    }
+    /* Funding bar (to visualize % funding) */
+    .funding-bar {
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 5px auto 0 auto;
+      width: 90%;
+      height: 8px;
+    }
+    .funding-bar-inner {
+      background: var(--ocha-blue);
+      height: 100%;
+      width: 0%; /* will be set dynamically */
+    }
+    /* Footer for source notes */
+    footer {
+      background: #f9f9f9;
+      padding: 10px 15px;
+      font-size: 0.8em;
+      color: #555;
+      text-align: center;
+    }
+    footer a {
+      color: #555;
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Disclaimer Banner -->
+  <header id="disclaimer">
+    Disclaimer: Proof of Concept – neither official nor for decision‑making; Created with CoPilot by Andrej Verity; Content not verified for accuracy.
+  </header>
+
+  <div class="content">
+    <!-- Title will dynamically show "Global" or country name and year -->
+    <h1 id="dashboardTitle">Global Humanitarian Key Figures <span id="yearLabel"></span></h1>
+    <h2 id="subtitle">(Select a country to view its key figures)</h2>
+
+    <!-- Controls: Country selector dropdown -->
+    <div class="controls">
+      <label for="countrySelect"><strong>Country:</strong> </label>
+      <select id="countrySelect">
+        <!-- Options will be populated by JavaScript -->
+      </select>
+    </div>
+
+    <!-- Metrics cards section -->
+    <div id="metricsContainer" class="metrics">
+      <!-- Metric cards will be inserted here dynamically -->
+      <!-- Example structure of a metric card for reference:
+      <div class="metric-card">
+         <h3>People in Need</h3>
+         <div class="metric-value">12.3<span class="metric-unit">M</span></div>
+         <div class="metric-source">HNO/HRP</div>
+      </div>
+      -->
+    </div>
+  </div>
+
+  <!-- Footer with data sources -->
+  <footer>
+    Data Sources: People in Need/Targeted – Humanitarian Needs Overview (HPC); Funding figures – OCHA FTS; CERF – UN CERF; CBPF – OCHA pooled funds; INFORM – EC JRC.<br/>
+    (Data via OCHA Key Figures API)
+  </footer>
+
+  <!-- JavaScript to fetch data and handle interactivity -->
+  <script>
+    // Configuration: API endpoint, year, and credentials.
+    const API_BASE = 'https://keyfigures.api.unocha.org/api/v1';
+    const APP_NAME = 'andrejverity';
+    const API_TOKEN = '993870efb16288ea796dfba0d1e6a9f6';  // Your API key (token)
+    const YEAR = new Date().getFullYear();  // current year; change if needed to a specific year like 2025.
+
+    // Elements in the DOM that we will update:
+    const yearLabelElem = document.getElementById('yearLabel');
+    const titleElem = document.getElementById('dashboardTitle');
+    const subtitleElem = document.getElementById('subtitle');
+    const countrySelectElem = document.getElementById('countrySelect');
+    const metricsContainer = document.getElementById('metricsContainer');
+
+    // Set the year label in the title (e.g., "2026"):
+    yearLabelElem.textContent = YEAR;
+
+    // Utility: format large numbers with commas and units (K, M) for readability.
+    function formatNumber(value) {
+      if (value === null || value === undefined) return '-';
+      if (value >= 1000000000) {
+        // billions
+        return (value / 1000000000).toFixed(1) + 'B';
+      } else if (value >= 1000000) {
+        // millions
+        return (value / 1000000).toFixed(1) + 'M';
+      } else if (value >= 1000) {
+        // thousands
+        return (value / 1000).toFixed(1) + 'K';
+      } else {
+        return value.toString();
+      }
+    }
+
+    // State: will hold the fetched data (an array of country records)
+    let allData = [];
+
+    // Fetch data from the API for the given year.
+    async function fetchKeyFigures(year) {
+      const url = \`\${API_BASE}/KeyFigures?year=\${year}\`;
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'APP-NAME': APP_NAME,
+            'Authorization': 'Bearer ' + API_TOKEN  // The API expects the token; using Bearer token in Authorization header as commonly done.
+          }
+        });
+        if (!response.ok) {
+          console.error('API response error:', response.status, response.statusText);
+          return null;
+        }
+        const data = await response.json();
+        return data;
+      } catch (err) {
+        console.error('Fetch error:', err);
+        return null;
+      }
+    }
+
+    // Populate the dropdown with country options and include a "Global" option.
+    function populateCountryOptions(dataArray) {
+      // Sort countries alphabetically by name for convenience:
+      dataArray.sort((a, b) => a.country.localeCompare(b.country));
+      // Add a "Global" option at the top:
+      const globalOption = document.createElement('option');
+      globalOption.value = 'GLOBAL';
+      globalOption.text = 'Global (All Countries)';
+      countrySelectElem.appendChild(globalOption);
+      // Create an option for each country
+      dataArray.forEach(record => {
+        const option = document.createElement('option');
+        option.value = record.country_iso3 || record.country || '';  // use ISO3 code if available, otherwise country name
+        option.text = record.country;
+        countrySelectElem.appendChild(option);
+      });
+    }
+
+    // Render the metric cards for a given data record (country) or global aggregate.
+    function renderMetrics(dataRecord, isGlobal = false) {
+      metricsContainer.innerHTML = '';  // clear previous cards
+      if (!dataRecord) {
+        metricsContainer.textContent = 'No data available.';
+        return;
+      }
+
+      // Helper to add a metric card to the container.
+      const addCard = (title, value, sourceAbbrev) => {
+        const card = document.createElement('div');
+        card.className = 'metric-card';
+        const titleElem = document.createElement('h3');
+        titleElem.textContent = title;
+        const valueElem = document.createElement('div');
+        valueElem.className = 'metric-value';
+        // If numeric value is large, format it (and show unit like K/M/B if applicable)
+        let formattedValue = formatNumber(value);
+        // If formattedValue contains a letter (K, M, B), separate into number and unit spans
+        if (/[KMB]$/.test(formattedValue)) {
+          const unit = formattedValue.slice(-1);
+          const numberPart = formattedValue.slice(0, -1);
+          valueElem.innerHTML = numberPart + '<span class="metric-unit">' + unit + '</span>';
+        } else {
+          valueElem.textContent = formattedValue;
+        }
+        const sourceElem = document.createElement('div');
+        sourceElem.className = 'metric-source';
+        sourceElem.textContent = sourceAbbrev;
+        // Assemble card
+        card.appendChild(titleElem);
+        card.appendChild(valueElem);
+        card.appendChild(sourceElem);
+        metricsContainer.appendChild(card);
+        return card;
+      };
+
+      // Extract values (with fallback to 0 or null if missing)
+      const peopleInNeed = dataRecord.peopleInNeed ?? dataRecord.people_in_need ?? dataRecord.PeopleInNeed ?? null;
+      const peopleTargeted = dataRecord.peopleTargeted ?? dataRecord.people_targeted ?? dataRecord.PeopleTargeted ?? null;
+      const peopleReached = dataRecord.peopleReached ?? dataRecord.people_reached ?? dataRecord.PeopleReached ?? null;
+      const fundingRequired = dataRecord.fundingRequirements ?? dataRecord.funding_required ?? dataRecord.FundingRequirements ?? null;
+      const fundingReceived = dataRecord.fundingReceived ?? dataRecord.funding_received ?? dataRecord.FundingReceived ?? null;
+      // Calculate coverage if possible
+      let fundingCoveragePct = null;
+      if (fundingRequired && fundingReceived) {
+        fundingCoveragePct = (fundingRequired > 0) ? (fundingReceived / fundingRequired) * 100 : null;
+      }
+      const cerfAllocations = dataRecord.cerfAllocations ?? dataRecord.CERF ?? dataRecord.cerf ?? null;
+      const cbpfAllocations = dataRecord.cbpfAllocations ?? dataRecord.CBPF ?? dataRecord.cbpf ?? null;
+      const informRisk = dataRecord.informIndex ?? dataRecord.INFORM ?? dataRecord.inform ?? null;
+
+      // People in Need card
+      addCard('People in Need', peopleInNeed, 'HNO/HRP');
+      // People Targeted card
+      addCard('People Targeted', peopleTargeted, 'HRP');
+      // (Optionally) People Reached card, if data is present and relevant for the current context.
+      if (peopleReached !== null && peopleReached !== undefined) {
+        addCard('People Reached', peopleReached, 'HRP');
+      }
+      // Funding Required card
+      addCard('Funding Required (US$)', fundingRequired, 'FTS');
+      // Funding Received card
+      const fundingReceivedCard = addCard('Funding Received (US$)', fundingReceived, 'FTS');
+      // If we have both required and received, add a small progress bar inside the "Funding Received" card to show % funded.
+      if (fundingCoveragePct !== null) {
+        const barContainer = document.createElement('div');
+        barContainer.className = 'funding-bar';
+        const barInner = document.createElement('div');
+        barInner.className = 'funding-bar-inner';
+        barInner.style.width = Math.min(fundingCoveragePct, 100).toFixed(0) + '%';  // cap at 100%
+        barContainer.appendChild(barInner);
+        fundingReceivedCard.appendChild(barContainer);
+        // Also append a text label for percentage below the bar (optional):
+        const pctLabel = document.createElement('div');
+        pctLabel.style.fontSize = '0.8em';
+        pctLabel.style.marginTop = '2px';
+        pctLabel.textContent = fundingCoveragePct.toFixed(0) + '% funded';
+        fundingReceivedCard.appendChild(pctLabel);
+      }
+      // CERF Allocations card
+      if (cerfAllocations !== null) {
+        addCard('CERF Allocations (US$)', cerfAllocations, 'CERF');
+      }
+      // CBPF Allocations card
+      if (cbpfAllocations !== null) {
+        addCard('CBPF Allocations (US$)', cbpfAllocations, 'CBPF');
+      }
+      // INFORM Risk Index card
+      if (informRisk !== null) {
+        addCard('INFORM Risk Index', informRisk, 'INFORM');
+      }
+    }
+
+    // Event handler for dropdown change
+    countrySelectElem.addEventListener('change', () => {
+      const selectedValue = countrySelectElem.value;
+      if (selectedValue === 'GLOBAL') {
+        // Show global aggregated data
+        titleElem.textContent = 'Global Humanitarian Key Figures ' + YEAR;
+        subtitleElem.textContent = '(Select a country to view its key figures)';
+        // Compute global totals from allData
+        const globalTotals = computeGlobalTotals(allData);
+        renderMetrics(globalTotals, true);
+      } else {
+        // Find the selected country’s data
+        const rec = allData.find(r => r.country_iso3 === selectedValue || r.country === selectedValue);
+        if (rec) {
+          titleElem.textContent = \`\${rec.country} – Key Figures \${YEAR}\`;
+          subtitleElem.textContent = '';  // remove subtitle when a country is selected (or we could show a static note)
+          renderMetrics(rec, false);
+        }
+      }
+    });
+
+    // Compute global totals by summing numeric fields across all country records.
+    function computeGlobalTotals(dataArray) {
+      const totalRec = { country: 'Global', country_iso3: 'GLB', year: YEAR };
+      let sumPIN=0, sumPTarget=0, sumPReached=0, sumReq=0, sumRecv=0, sumCERF=0, sumCBPF=0;
+      let countInform = 0, sumInform = 0;
+      dataArray.forEach(rec => {
+        if (rec.peopleInNeed !== undefined) { sumPIN += Number(rec.peopleInNeed) || 0; }
+        if (rec.peopleTargeted !== undefined) { sumPTarget += Number(rec.peopleTargeted) || 0; }
+        if (rec.peopleReached !== undefined) { sumPReached += Number(rec.peopleReached) || 0; }
+        if (rec.fundingRequirements !== undefined) { sumReq += Number(rec.fundingRequirements) || 0; }
+        if (rec.fundingReceived !== undefined) { sumRecv += Number(rec.fundingReceived) || 0; }
+        if (rec.cerfAllocations !== undefined) { sumCERF += Number(rec.cerfAllocations) || 0; }
+        if (rec.cbpfAllocations !== undefined) { sumCBPF += Number(rec.cbpfAllocations) || 0; }
+        // INFORM Index might not sum meaningfully, instead we could compute average or max risk level.
+        if (rec.informIndex !== undefined) {
+          const val = parseFloat(rec.informIndex);
+          if (!isNaN(val)) { sumInform += val; countInform += 1; }
+        }
+      });
+      // Assign summed/aggregated values to totalRec (using same keys as individual records for compatibility)
+      totalRec.peopleInNeed = sumPIN || 0;
+      totalRec.peopleTargeted = sumPTarget || 0;
+      totalRec.peopleReached = sumPReached || 0;
+      totalRec.fundingRequirements = sumReq || 0;
+      totalRec.fundingReceived = sumRecv || 0;
+      totalRec.cerfAllocations = sumCERF || 0;
+      totalRec.cbpfAllocations = sumCBPF || 0;
+      if (countInform > 0) {
+        totalRec.informIndex = (sumInform / countInform).toFixed(1);  // average INFORM score, just as a rough indicator
+      }
+      return totalRec;
+    }
+
+    // Initialize: fetch data and build initial view.
+    (async function init() {
+      const data = await fetchKeyFigures(YEAR);
+      if (!data) {
+        titleElem.textContent = 'Error loading data';
+        subtitleElem.textContent = 'Please try again later.';
+        return;
+      }
+      allData = data;
+      // Populate dropdown and render global totals by default
+      populateCountryOptions(allData);
+      countrySelectElem.value = 'GLOBAL';
+      const globalData = computeGlobalTotals(allData);
+      renderMetrics(globalData, true);
+      // Note: The API may include territories or global/regional entries; we focus on countries for the dropdown.
+      // If needed, one could filter out entries that are not countries.
+    })();
+  </script>
+</body>
+</html>
