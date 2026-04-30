@@ -5,10 +5,8 @@
   <title>Humanitarian Funding Dashboard – Global Crisis Overview</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-
-!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
   <style>
     body {
@@ -37,12 +35,8 @@
       border-radius: 16px;
       margin-bottom: 20px;
     }
-    header h1 {
-      margin: 0 0 6px 0;
-    }
     .controls {
       display: flex;
-      flex-wrap: wrap;
       gap: 12px;
       align-items: center;
       margin-bottom: 12px;
@@ -51,7 +45,6 @@
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #cbd5e1;
-      font-size: 0.95rem;
     }
     .status {
       padding: 12px;
@@ -83,7 +76,6 @@
     .metric {
       font-size: 1.8rem;
       font-weight: bold;
-      margin-top: 6px;
     }
     .section {
       background: white;
@@ -92,24 +84,18 @@
       margin-bottom: 22px;
       box-shadow: 0 6px 18px rgba(15,23,42,0.08);
     }
-    canvas {
-      max-height: 380px;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
     }
     th, td {
       padding: 10px;
       border-bottom: 1px solid #e2e8f0;
       text-align: left;
     }
-    th {
-      background: #f1f5f9;
-    }
     tr:hover {
       background: #f8fafc;
+      cursor: pointer;
     }
     footer {
       margin-top: 30px;
@@ -124,8 +110,7 @@
 <div class="page">
 
   <div class="disclaimer">
-    <strong>Disclaimer:</strong> Proof of Concept – neither official nor for decision‑making;
-    Created with Copilot by Andrej Verity; Content not verified for accuracy.
+    <strong>Disclaimer:</strong> Proof of Concept – neither official nor for decision‑making.
   </div>
 
   <header>
@@ -133,7 +118,6 @@
     <p>Executive overview of global humanitarian requirements and funding</p>
   </header>
 
-  <!-- DATA SOURCE SWITCH -->
   <div class="controls">
     <label><strong>Data source:</strong></label>
     <select id="dataSource">
@@ -144,10 +128,8 @@
 
   <div id="statusBox" class="status info">
     Data shown is from <strong>30 April 2026</strong>.
-    To refresh, copy updated CSV files into the same location as this page.
   </div>
 
-  <!-- GLOBAL SNAPSHOT -->
   <div class="cards">
     <div class="card">
       <div>Total Requirements (USD)</div>
@@ -163,175 +145,147 @@
     </div>
   </div>
 
-  <!-- GLOBAL GAP CHART -->
   <div class="section">
     <h3>Global Funding Gap</h3>
     <canvas id="gapChart"></canvas>
   </div>
 
-  <!-- UNDERFUNDED TABLE -->
   <div class="section">
-    <h3>Lowest‑Funded Crisis Plans</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Country / Plan</th>
-          <th>Requirements (USD)</th>
-          <th>Funding (USD)</th>
-          <th>Coverage %</th>
-        </tr>
-      </thead>
-      <tbody id="crisisTable"></tbody>
-    </table>
+    <h3>Funding by Country / Plan</h3>
+    <select id="countrySelect">
+      <option value="">Select a country / plan</option>
+    </select>
+    <div id="countryDetail" style="margin-top:12px;"></div>
   </div>
 
   <footer>
-    Data sources: OCHA FTS / HDX<br/>
-    Dashboard snapshot dated 30 April 2026
+    Data snapshot dated 30 April 2026
   </footer>
-
 </div>
 
 <script>
-/**************************************************************
- * CONFIG
- **************************************************************/
-const SOURCES = {
-  local: {
-    label: "30 April 2026",
-    annual: "./fts_requirements_funding_global.csv"
-  },
-  hdx: {
-    annual: "https://data.humdata.org/dataset/b2bbb33c-2cfb-4809-8dd3-6bbdc080cbb9/resource/b3232da8-f1e4-41ab-9642-b22dae10a1d7/download/fts_requirements_funding_global.csv"
+/* ---------------- CSV PARSER (ROBUST) ---------------- */
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = "", inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const n = text[i + 1];
+
+    if (c === '"' && inQuotes && n === '"') {
+      cell += '"'; i++;
+    } else if (c === '"') {
+      inQuotes = !inQuotes;
+    } else if (c === "," && !inQuotes) {
+      row.push(cell); cell = "";
+    } else if ((c === "\n" || c === "\r") && !inQuotes) {
+      if (cell || row.length) row.push(cell);
+      if (row.length) rows.push(row);
+      row = []; cell = "";
+      if (c === "\r" && n === "\n") i++;
+    } else {
+      cell += c;
+    }
   }
-};
+  if (cell || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
 
-let gapChart;
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const start = rows[1]?.[0]?.startsWith("#") ? 2 : 1;
 
-/**************************************************************
- * HELPERS
- **************************************************************/
-const $ = id => document.getElementById(id);
-
-function parseCsv(text) {
-  const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
-  const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
-  return rows.slice(1).map(r => {
-    const cols = r.split(",");
+  return rows.slice(start).map(r => {
     const o = {};
-    headers.forEach((h, i) => o[h] = cols[i]);
+    headers.forEach((h, i) => o[h] = r[i]);
     return o;
   });
 }
 
 const toNum = v => Number(String(v || "0").replace(/,/g, "")) || 0;
+const fmtUSD = v => new Intl.NumberFormat("en-US", {
+  style: "currency", currency: "USD", notation: "compact"
+}).format(v);
 
-const fmtUSD = v =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1
-  }).format(v);
+let chart;
+let aggregated = [];
 
-/**************************************************************
- * RENDER
- **************************************************************/
-function clearDashboard() {
-  $("reqValue").textContent = "—";
-  $("fundValue").textContent = "—";
-  $("pctValue").textContent = "—%";
-  $("crisisTable").innerHTML = "";
-  if (gapChart) gapChart.destroy();
-}
-
-function renderDashboard(rows) {
+function render(rows) {
   const year = Math.max(...rows.map(r => toNum(r.year)));
-  const yrRows = rows.filter(r => toNum(r.year) === year);
+  const y = rows.filter(r => toNum(r.year) === year && toNum(r.requirements) > 0);
 
-  const req = yrRows.reduce((s, r) => s + toNum(r.requirements), 0);
-  const fund = yrRows.reduce((s, r) => s + toNum(r.funding), 0);
-  const pct = req ? (fund / req) * 100 : 0;
+  const req = y.reduce((s, r) => s + toNum(r.requirements), 0);
+  const fund = y.reduce((s, r) => s + toNum(r.funding), 0);
 
-  $("reqValue").textContent = fmtUSD(req);
-  $("fundValue").textContent = fmtUSD(fund);
-  $("pctValue").textContent = pct.toFixed(1) + "%";
+  reqValue.textContent = fmtUSD(req);
+  fundValue.textContent = fmtUSD(fund);
+  pctValue.textContent = ((fund / req) * 100).toFixed(1) + "%";
 
-  // Gap chart
-  gapChart = new Chart($("gapChart"), {
+  if (chart) chart.destroy();
+  chart = new Chart(gapChart, {
     type: "doughnut",
     data: {
       labels: ["Funded", "Unfunded"],
-      datasets: [{
-        data: [fund, req - fund],
-        backgroundColor: ["#1c8c67", "#f0a8a8"]
-      }]
-    },
-    options: { responsive: true }
+      datasets: [{ data: [fund, req - fund], backgroundColor: ["#1c8c67", "#f0a8a8"] }]
+    }
   });
 
-  // Underfunded table
-  const sorted = yrRows
-    .filter(r => toNum(r.requirements) > 0)
-    .map(r => ({
-      name: r.name || "Unnamed",
-      req: toNum(r.requirements),
-      fund: toNum(r.funding)
-    }))
-    .sort((a, b) => (a.fund / a.req) - (b.fund / b.req))
-    .slice(0, 10);
+  aggregated = {};
+  y.forEach(r => {
+    const k = r.name;
+    aggregated[k] ??= { name: k, req: 0, fund: 0 };
+    aggregated[k].req += toNum(r.requirements);
+    aggregated[k].fund += toNum(r.funding);
+  });
 
-  $("crisisTable").innerHTML = sorted.map(r => `
-    <tr>
-      <td>${r.name}</td>
-      <td>${fmtUSD(r.req)}</td>
-      <td>${fmtUSD(r.fund)}</td>
-      <td>${((r.fund / r.req) * 100).toFixed(1)}%</td>
-    </tr>
-  `).join("");
+  countrySelect.innerHTML = `<option value="">Select a country / plan</option>` +
+    Object.values(aggregated)
+      .sort((a,b)=> (a.fund/a.req)-(b.fund/b.req))
+      .map(c => `<option value="${c.name}">${c.name}</option>`).join("");
 }
 
-/**************************************************************
- * LOAD LOGIC
- **************************************************************/
-async function loadSource(key) {
-  clearDashboard();
-  const status = $("statusBox");
+countrySelect.onchange = () => {
+  const c = aggregated[countrySelect.value];
+  if (!c) { countryDetail.innerHTML = ""; return; }
+  countryDetail.innerHTML = `
+    <strong>${c.name}</strong><br/>
+    Requirements: ${fmtUSD(c.req)}<br/>
+    Funding: ${fmtUSD(c.fund)}<br/>
+    Coverage: ${((c.fund/c.req)*100).toFixed(1)}%
+  `;
+};
 
+async function loadLocal() {
+  const txt = await fetch("./fts_requirements_funding_global.csv").then(r=>r.text());
+  render(parseCSV(txt));
+}
+
+async function loadHDX() {
   try {
-    const res = await fetch(SOURCES[key].annual);
-    if (!res.ok) throw new Error("Fetch failed");
-    const text = await res.text();
-    const rows = parseCsv(text);
-
-    renderDashboard(rows);
-
-    if (key === "local") {
-      status.className = "status info";
-      status.innerHTML =
-        `Data shown is from <strong>${SOURCES.local.label}</strong>.
-         To refresh, copy updated CSV files into the same location as this page.`;
-    } else {
-      status.className = "status info";
-      status.innerHTML =
-        `Data fetched from HDX at <strong>${new Date().toLocaleString()}</strong>.`;
-    }
-
-  } catch (e) {
-    status.className = "status error";
-    status.innerHTML =
-      "<strong>HDX data could not be fetched.</strong><br/>" +
-      "The HDX server blocked this request due to browser CORS restrictions.";
+    const txt = await fetch(
+      "https://data.humdata.org/dataset/b2bbb33c-2cfb-4809-8dd3-6bbdc080cbb9/resource/b3232da8-f1e4-41ab-9642-b22dae10a1d7/download/fts_requirements_funding_global.csv"
+    ).then(r=>{ if(!r.ok) throw 1; return r.text();});
+    statusBox.className="status info";
+    statusBox.innerHTML=`Data fetched at <strong>${new Date().toLocaleString()}</strong>.`;
+    render(parseCSV(txt));
+  } catch {
+    statusBox.className="status error";
+    statusBox.innerHTML="HDX data could not be fetched due to browser CORS restrictions.";
   }
 }
 
-/**************************************************************
- * INIT
- **************************************************************/
-document.addEventListener("DOMContentLoaded", () => {
-  loadSource("local");
-  $("dataSource").addEventListener("change", e => loadSource(e.target.value));
-});
+dataSource.onchange = e => {
+  if (e.target.value === "local") {
+    statusBox.className="status info";
+    statusBox.innerHTML="Data shown is from <strong>30 April 2026</strong>.";
+    loadLocal();
+  } else {
+    loadHDX();
+  }
+};
+
+loadLocal();
 </script>
 
 </body>
