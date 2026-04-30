@@ -2,1732 +2,335 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
   <title>Humanitarian Funding Dashboard – Global Crisis Overview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!--
-    Humanitarian Funding Dashboard
-    Proof of Concept for UNOCHA senior leadership briefing use
-    Single-file static page with embedded CSS + JS
-    Data sources:
-      - FTS annual requirements/funding (global, multi-year, crisis-level rows)
-      - FTS incoming funding (global, transaction-level rows)
-    Notes:
-      - No backend required
-      - Uses Chart.js via CDN
-      - Designed to work with direct CSV fetches from HDX/FTS resources
-      - Includes CSV parser logic that skips a likely HXL tag row when present
-  -->
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Chart.js -->
+  https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.jsscript>
 
   <style>
-    :root {
-      /* OCHA-inspired palette: blues, grays, cyan accents, alert red */
-      --ocha-blue: #1f5a95;
-      --ocha-blue-dark: #123a62;
-      --ocha-blue-light: #eaf2fb;
-      --ocha-cyan: #00a7d3;
-      --ocha-cyan-soft: #dff7fd;
-      --ocha-red: #c73b3b;
-      --ocha-red-soft: #fdeaea;
-      --ocha-green: #1c8c67;
-      --ocha-green-soft: #e8f6f1;
-      --gray-50: #f8fafc;
-      --gray-100: #f1f5f9;
-      --gray-200: #e2e8f0;
-      --gray-300: #cbd5e1;
-      --gray-500: #64748b;
-      --gray-700: #334155;
-      --gray-900: #0f172a;
-      --white: #ffffff;
-      --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
-      --radius: 18px;
-      --radius-sm: 12px;
-      --content-max: 1400px;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
-      color: var(--gray-900);
-      background:
-        linear-gradient(180deg, #f7fbff 0%, #f9fafb 180px, #f8fafc 100%);
-      line-height: 1.5;
+      background: #f8fafc;
+      color: #0f172a;
     }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
     .page {
-      max-width: var(--content-max);
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 0 16px 32px;
-    }
-
-    .top-accent {
-      height: 8px;
-      background: linear-gradient(90deg, var(--ocha-blue) 0%, var(--ocha-cyan) 70%, #64d2ff 100%);
-    }
-
-    .disclaimer {
-      margin-top: 12px;
-      background: linear-gradient(90deg, #fff7e6 0%, #fff9ee 100%);
-      border: 1px solid #f5d48c;
-      color: #6b4f00;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 0.95rem;
-      box-shadow: 0 4px 14px rgba(107, 79, 0, 0.08);
-    }
-
-    header.hero {
-      margin-top: 16px;
-      background: linear-gradient(135deg, rgba(31, 90, 149, 0.98), rgba(18, 58, 98, 0.98));
-      color: var(--white);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      padding: 26px 24px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    header.hero::after {
-      content: "";
-      position: absolute;
-      right: -80px;
-      top: -80px;
-      width: 240px;
-      height: 240px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%);
-    }
-
-    .hero-title {
-      font-size: clamp(1.8rem, 2.2vw, 2.6rem);
-      font-weight: 700;
-      margin: 0 0 8px;
-      letter-spacing: 0.2px;
-    }
-
-    .hero-subtitle {
-      margin: 0;
-      color: rgba(255, 255, 255, 0.92);
-      font-size: 1rem;
-    }
-
-    .hero-meta {
-      margin-top: 12px;
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      font-size: 0.92rem;
-    }
-
-    .section {
-      margin-top: 22px;
-      background: var(--white);
-      border: 1px solid rgba(148, 163, 184, 0.16);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
       padding: 20px;
     }
-
-    .section-title {
-      margin: 0 0 6px;
-      font-size: 1.35rem;
-      color: var(--ocha-blue-dark);
-    }
-
-    .section-subtitle {
-      margin: 0 0 16px;
-      color: var(--gray-500);
-      font-size: 0.97rem;
-    }
-
-    .grid {
-      display: grid;
-      gap: 16px;
-    }
-
-    .stats-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      margin-bottom: 16px;
-    }
-
-    .detail-cards {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .two-col {
-      grid-template-columns: 1.2fr 1fr;
-      align-items: stretch;
-    }
-
-    .three-col {
-      grid-template-columns: 1fr 1fr 1fr;
-    }
-
-    .card,
-    .panel {
-      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      border-radius: var(--radius);
-      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
-      padding: 16px;
-      min-width: 0;
-    }
-
-    .stat-card {
-      position: relative;
-      overflow: hidden;
-      padding: 18px;
-    }
-
-    .stat-card::before {
-      content: "";
-      position: absolute;
-      inset: 0 auto 0 0;
-      width: 6px;
-      background: var(--ocha-blue);
-      border-radius: 18px 0 0 18px;
-    }
-
-    .stat-card.warning::before {
-      background: var(--ocha-red);
-    }
-
-    .stat-card.good::before {
-      background: var(--ocha-green);
-    }
-
-    .stat-label {
-      font-size: 0.92rem;
-      color: var(--gray-500);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .metric {
-      font-size: clamp(1.5rem, 2vw, 2rem);
-      font-weight: 700;
-      color: var(--gray-900);
-      letter-spacing: 0.2px;
-    }
-
-    .metric-sub {
-      margin-top: 8px;
-      font-size: 0.9rem;
-      color: var(--gray-500);
-    }
-
-    .summary-callout {
-      margin-top: 6px;
-      background: linear-gradient(90deg, var(--ocha-blue-light), #f7fbff);
-      border: 1px solid #d6e6f7;
-      color: var(--gray-700);
-      border-radius: 16px;
-      padding: 14px 16px;
-      font-size: 1rem;
-    }
-
-    .loading,
-    .empty,
-    .error {
-      padding: 14px 16px;
-      border-radius: 14px;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .loading {
-      color: var(--gray-700);
-      background: var(--gray-50);
-      border: 1px dashed var(--gray-300);
-    }
-
-    .empty {
-      color: var(--gray-700);
-      background: #fbfdff;
-      border: 1px dashed var(--gray-300);
-    }
-
-    .error {
-      color: #7f1d1d;
-      background: #fff5f5;
-      border: 1px solid #fecaca;
-    }
-
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      border: 2px solid #cbd5e1;
-      border-top-color: var(--ocha-blue);
-      animation: spin 0.9s linear infinite;
-      flex: 0 0 auto;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .chart-wrap {
-      position: relative;
-      min-height: 300px;
-    }
-
-    .chart-wrap.tall {
-      min-height: 360px;
-    }
-
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    .table-wrap {
-      overflow: auto;
-      border-radius: 16px;
-      border: 1px solid var(--gray-200);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 700px;
-      background: var(--white);
-    }
-
-    thead th {
-      position: sticky;
-      top: 0;
-      background: #f8fbff;
-      color: var(--ocha-blue-dark);
-      text-align: left;
-      font-size: 0.9rem;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--gray-200);
-      z-index: 1;
-    }
-
-    tbody td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--gray-100);
-      font-size: 0.95rem;
-      color: var(--gray-700);
-      vertical-align: middle;
-    }
-
-    tbody tr:nth-child(even) {
-      background: #fcfdff;
-    }
-
-    tbody tr:hover {
-      background: #f2f8ff;
-    }
-
-    tbody tr.clickable {
-      cursor: pointer;
-    }
-
-    .country-link {
-      color: var(--ocha-blue-dark);
-      font-weight: 700;
-    }
-
-    .coverage-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 74px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 0.9rem;
-      background: var(--gray-100);
-      color: var(--gray-700);
-    }
-
-    .coverage-badge.low {
-      background: var(--ocha-red-soft);
-      color: var(--ocha-red);
-    }
-
-    .coverage-badge.medium {
+    .disclaimer {
       background: #fff7e6;
-      color: #b26b00;
+      border: 1px solid #f5d48c;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
     }
-
-    .flag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--ocha-red);
-      font-weight: 700;
+    header {
+      background: #1f5a95;
+      color: white;
+      padding: 24px;
+      border-radius: 16px;
+      margin-bottom: 20px;
     }
-
-    .country-controls {
+    header h1 {
+      margin: 0 0 6px 0;
+    }
+    .controls {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
       align-items: center;
-      margin-bottom: 16px;
-    }
-
-    label {
-      font-size: 0.92rem;
-      color: var(--gray-700);
-      font-weight: 700;
-    }
-
-    select {
-      min-width: 260px;
-      padding: 11px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--gray-300);
-      background: var(--white);
-      font-size: 0.96rem;
-      color: var(--gray-900);
-      outline: none;
-    }
-
-    select:focus {
-      border-color: var(--ocha-cyan);
-      box-shadow: 0 0 0 4px rgba(0, 167, 211, 0.12);
-    }
-
-    .country-heading {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px 16px;
       margin-bottom: 12px;
     }
-
-    .country-title {
-      margin: 0;
-      color: var(--ocha-blue-dark);
-      font-size: 1.3rem;
-    }
-
-    .country-meta {
-      color: var(--gray-500);
+    select {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
       font-size: 0.95rem;
     }
-
-    .progress-shell {
-      height: 22px;
+    .status {
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+    }
+    .status.info {
+      background: #eaf2fb;
+      border: 1px solid #c7dbf5;
+    }
+    .status.error {
+      background: #fdeaea;
+      border: 1px solid #f5bcbc;
+      color: #7f1d1d;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+    }
+    .metric {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 22px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+    }
+    canvas {
+      max-height: 380px;
+    }
+    table {
       width: 100%;
-      background: linear-gradient(90deg, #eef2f7, #f8fafc);
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid var(--gray-200);
-      position: relative;
-    }
-
-    .progress-fill {
-      height: 100%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, var(--ocha-cyan), var(--ocha-blue));
-      width: 0%;
-      transition: width 400ms ease;
-    }
-
-    .progress-text {
-      margin-top: 8px;
-      color: var(--gray-500);
-      font-size: 0.9rem;
-    }
-
-    .note {
+      border-collapse: collapse;
       margin-top: 12px;
-      color: var(--gray-500);
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+    }
+    tr:hover {
+      background: #f8fafc;
+    }
+    footer {
+      margin-top: 30px;
       font-size: 0.9rem;
-    }
-
-    .legend-note {
-      color: var(--gray-500);
-      font-size: 0.88rem;
-      margin-top: 8px;
-    }
-
-    .tooltip-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .info-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--ocha-blue-light);
-      color: var(--ocha-blue);
-      font-size: 0.8rem;
-      font-weight: 700;
-      cursor: help;
-      border: 1px solid #d7e7f6;
-    }
-
-    .footer {
-      margin-top: 18px;
-      color: var(--gray-500);
-      font-size: 0.92rem;
+      color: #475569;
       text-align: center;
-      padding: 18px 12px 8px;
-    }
-
-    .footer strong {
-      color: var(--gray-700);
-    }
-
-    .muted {
-      color: var(--gray-500);
-    }
-
-    .mono {
-      font-variant-numeric: tabular-nums;
-    }
-
-    .small {
-      font-size: 0.9rem;
-    }
-
-    @media (max-width: 1050px) {
-      .two-col {
-        grid-template-columns: 1fr;
-      }
-
-      .stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 680px) {
-      .page {
-        padding: 0 12px 24px;
-      }
-
-      .section {
-        padding: 16px;
-      }
-
-      .stats-grid,
-      .detail-cards,
-      .three-col {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-title {
-        font-size: 1.7rem;
-      }
-
-      select {
-        width: 100%;
-        min-width: 0;
-      }
     }
   </style>
 </head>
+
 <body>
-  <div class="top-accent" aria-hidden="true"></div>
+<div class="page">
 
-  <div class="page">
-    <div class="disclaimer" role="note" aria-label="Disclaimer">
-      <strong>Disclaimer:</strong> Proof of Concept – neither official nor for decision‑making; Created with CoPilot by Andrej Verity; Content not verified for accuracy.
-    </div>
-
-    <header class="hero" role="banner">
-      <h1 class="hero-title">Humanitarian Funding Dashboard – Global Crisis Overview</h1>
-      <p class="hero-subtitle">
-        Executive view of global requirements, funding coverage, underfunded crises, and multi‑year funding trends.
-      </p>
-      <div class="hero-meta">
-        <span>Last updated:</span>
-        <strong id="lastUpdatedText">Loading…</strong>
-      </div>
-    </header>
-
-    <!-- Global Snapshot -->
-    <section class="section" id="global-overview">
-      <h2 class="section-title">Global Snapshot</h2>
-      <p class="section-subtitle">
-        Global humanitarian requirements, funding received, and overall funding coverage for the latest available year.
-      </p>
-
-      <div id="globalLoading" class="loading">
-        <span class="spinner" aria-hidden="true"></span>
-        <span>Loading global funding data…</span>
-      </div>
-
-      <div id="globalError" class="error" style="display:none;">
-        Global summary data unavailable.
-      </div>
-
-      <div id="globalContent" style="display:none;">
-        <div class="grid stats-grid">
-          <div class="card stat-card" id="cardRequirements">
-            <div class="stat-label">Total Humanitarian Requirements (USD)</div>
-            <div class="metric mono" id="globalRequirements">$—</div>
-            <div class="metric-sub" id="globalRequirementsSub">Latest available year</div>
-          </div>
-
-          <div class="card stat-card good" id="cardFunding">
-            <div class="stat-label">Funding Received (USD)</div>
-            <div class="metric mono" id="globalFunding">$—</div>
-            <div class="metric-sub">Aggregate funding mapped to current requirements</div>
-          </div>
-
-          <div class="card stat-card" id="cardCoverage">
-            <div class="stat-label">
-              <span class="tooltip-label">
-                % Funded
-                <span
-                  class="info-icon"
-                  title="Coverage % = Funding received divided by total humanitarian requirements."
-                  aria-label="Coverage percentage explanation"
-                >i</span>
-              </span>
-            </div>
-            <div class="metric mono" id="globalCoverage">—%</div>
-            <div class="metric-sub" id="globalCoverageSub">Funding coverage of total requirements</div>
-          </div>
-        </div>
-
-        <div class="summary-callout" id="globalSummarySentence">
-          Global appeals are —% funded, leaving a —% gap.
-        </div>
-
-        <div class="grid two-col" style="margin-top:16px;">
-          <div class="panel">
-            <h3 class="section-title" style="font-size:1.1rem; margin-bottom:4px;">Global Funding Gap</h3>
-            <p class="section-subtitle" style="margin-bottom:10px;">
-              Funded versus unfunded requirements, latest year.
-            </p>
-            <div class="chart-wrap">
-              <canvas id="globalGapChart"></canvas>
-            </div>
-            <div class="legend-note" id="globalGapLegend"></div>
-          </div>
-
-          <div class="panel">
-            <h3 class="section-title" style="font-size:1.1rem; margin-bottom:4px;">Coverage Context</h3>
-            <p class="section-subtitle" style="margin-bottom:10px;">
-              Quick interpretation of the current funding position.
-            </p>
-            <div id="coverageContext" class="empty">
-              Coverage summary will appear once data is loaded.
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Underfunded crises -->
-    <section class="section" id="underfunded-section">
-      <h2 class="section-title">Funding by Country / Plan</h2>
-      <p class="section-subtitle">
-        Lowest funding coverage among current crisis plans. Click a row to open the country detail panel below.
-      </p>
-
-      <div id="tableLoading" class="loading">
-        <span class="spinner" aria-hidden="true"></span>
-        <span>Loading ranked crisis coverage table…</span>
-      </div>
-
-      <div id="tableError" class="error" style="display:none;">
-        Country / plan coverage data unavailable.
-      </div>
-
-      <div id="tableContent" style="display:none;">
-        <div class="table-wrap">
-          <table class="crisis-table" aria-describedby="underfunded-section">
-            <thead>
-              <tr>
-                <th>Country / Plan</th>
-                <th>Requirements (USD)</th>
-                <th>Funding (USD)</th>
-                <th>
-                  <span class="tooltip-label">
-                    Coverage %
-                    <span
-                      class="info-icon"
-                      title="Coverage % = Funding received divided by requirements for the selected plan/country."
-                      aria-label="Coverage percentage explanation"
-                    >i</span>
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody id="crisisTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- Country detail -->
-    <section class="section country-section" id="country-detail-section">
-      <h2 class="section-title">Country Detail</h2>
-      <p class="section-subtitle">
-        Select a country / crisis to view funding received, gap percentage, and progress against requirements.
-      </p>
-
-      <div class="country-controls">
-        <label for="countrySelect">Country / Crisis</label>
-        <select id="countrySelect" aria-label="Select country or crisis">
-          <option value="">Select a country to see details</option>
-        </select>
-      </div>
-
-      <div id="countryPanel" class="empty">
-        Select a country to see details.
-      </div>
-    </section>
-
-    <!-- Trends -->
-    <section class="section" id="trends-section">
-      <h2 class="section-title">Global Trends</h2>
-      <p class="section-subtitle">
-        Multi-year global coverage, requirements, and funding, plus monthly incoming funding patterns.
-      </p>
-
-      <div id="trendsLoading" class="loading">
-        <span class="spinner" aria-hidden="true"></span>
-        <span>Loading global trends…</span>
-      </div>
-
-      <div id="trendsError" class="error" style="display:none;">
-        Trend data unavailable.
-      </div>
-
-      <div id="trendsContent" style="display:none;">
-        <div class="grid two-col">
-          <div class="panel">
-            <h3 class="section-title" style="font-size:1.1rem; margin-bottom:4px;">Multi‑Year Global Funding Trend</h3>
-            <p class="section-subtitle" style="margin-bottom:10px;">
-              Coverage % (bars) versus total requirements and funding (lines).
-            </p>
-            <div class="chart-wrap tall">
-              <canvas id="trendChart"></canvas>
-            </div>
-            <div class="note" id="trendNote">
-              Note: This view aggregates plan rows with positive requirements for each year.
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3 class="section-title" style="font-size:1.1rem; margin-bottom:4px;">Monthly Funding Flow</h3>
-            <p class="section-subtitle" style="margin-bottom:10px;">
-              Monthly incoming humanitarian funding, current year versus previous year.
-            </p>
-            <div class="chart-wrap tall">
-              <canvas id="monthlyChart"></canvas>
-            </div>
-            <div class="note" id="monthlyNote">
-              Annotation note: large jumps can reflect major appeals or concentrated disbursement periods.
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <footer class="footer">
-      <div>
-        <strong>Data sources:</strong> OCHA FTS / HDX (annual requirements & funding, incoming funding); page refreshes data on load.
-      </div>
-      <div class="muted">
-        Page auto-updates when opened online. © OCHA data sources referenced; dashboard interface is a proof of concept.
-      </div>
-    </footer>
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> Proof of Concept – neither official nor for decision‑making;
+    Created with Copilot by Andrej Verity; Content not verified for accuracy.
   </div>
 
-  <script>
-    /*********************************************************************
-     * CONFIG
-     *********************************************************************/
-    const CONFIG = {
-      // Annual requirements/funding data (global, multi-year, crisis-level rows)
-      annualCsvUrl:
-        "https://data.humdata.org/dataset/b2bbb33c-2cfb-4809-8dd3-6bbdc080cbb9/resource/b3232da8-f1e4-41ab-9642-b22dae10a1d7/download/fts_requirements_funding_global.csv",
+  <header>
+    <h1>Humanitarian Funding Dashboard – Global Crisis Overview</h1>
+    <p>Executive overview of global humanitarian requirements and funding</p>
+  </header>
 
-      // Incoming funding data (global, transaction-level)
-      incomingCsvUrl:
-        "https://data.humdata.org/dataset/b2bbb33c-2cfb-4809-8dd3-6bbdc080cbb9/resource/557eb027-8c66-4741-9ff4-43dab4458b1d/download/fts_incoming_funding_global.csv",
+  <!-- DATA SOURCE SWITCH -->
+  <div class="controls">
+    <label><strong>Data source:</strong></label>
+    <select id="dataSource">
+      <option value="local" selected>Local CSV (30 April 2026)</option>
+      <option value="hdx">HDX hosted data (live)</option>
+    </select>
+  </div>
 
-      lowCoverageThreshold: 15,
-      warningCoverageThreshold: 30,
-      numberLocale: "en-US",
-      defaultTopRows: 10,
-      trendYearsToShow: 8
-    };
+  <div id="statusBox" class="status info">
+    Data shown is from <strong>30 April 2026</strong>.
+    To refresh, copy updated CSV files into the same location as this page.
+  </div>
 
-    /*********************************************************************
-     * APP STATE
-     *********************************************************************/
-    const state = {
-      annualRows: [],
-      incomingRows: [],
-      currentYear: null,
-      crisisRowsCurrentYear: [],
-      aggregatedCurrentYear: [],
-      aggregatedByYear: [],
-      charts: {
-        gapChart: null,
-        trendChart: null,
-        monthlyChart: null
-      },
-      selectedCountryKey: ""
-    };
+  <!-- GLOBAL SNAPSHOT -->
+  <div class="cards">
+    <div class="card">
+      <div>Total Requirements (USD)</div>
+      <div id="reqValue" class="metric">—</div>
+    </div>
+    <div class="card">
+      <div>Funding Received (USD)</div>
+      <div id="fundValue" class="metric">—</div>
+    </div>
+    <div class="card">
+      <div>% Funded</div>
+      <div id="pctValue" class="metric">—%</div>
+    </div>
+  </div>
 
-    /*********************************************************************
-     * DOM HELPERS
-     *********************************************************************/
-    const el = (id) => document.getElementById(id);
+  <!-- GLOBAL GAP CHART -->
+  <div class="section">
+    <h3>Global Funding Gap</h3>
+    <canvas id="gapChart"></canvas>
+  </div>
 
-    function show(id) {
-      const node = el(id);
-      if (node) node.style.display = "";
+  <!-- UNDERFUNDED TABLE -->
+  <div class="section">
+    <h3>Lowest‑Funded Crisis Plans</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Country / Plan</th>
+          <th>Requirements (USD)</th>
+          <th>Funding (USD)</th>
+          <th>Coverage %</th>
+        </tr>
+      </thead>
+      <tbody id="crisisTable"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    Data sources: OCHA FTS / HDX<br/>
+    Dashboard snapshot dated 30 April 2026
+  </footer>
+
+</div>
+
+<script>
+/**************************************************************
+ * CONFIG
+ **************************************************************/
+const SOURCES = {
+  local: {
+    label: "30 April 2026",
+    annual: "./fts_requirements_funding_global.csv"
+  },
+  hdx: {
+    annual: "https://data.humdata.org/dataset/b2bbb33c-2cfb-4809-8dd3-6bbdc080cbb9/resource/b3232da8-f1e4-41ab-9642-b22dae10a1d7/download/fts_requirements_funding_global.csv"
+  }
+};
+
+let gapChart;
+
+/**************************************************************
+ * HELPERS
+ **************************************************************/
+const $ = id => document.getElementById(id);
+
+function parseCsv(text) {
+  const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
+  const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
+  return rows.slice(1).map(r => {
+    const cols = r.split(",");
+    const o = {};
+    headers.forEach((h, i) => o[h] = cols[i]);
+    return o;
+  });
+}
+
+const toNum = v => Number(String(v || "0").replace(/,/g, "")) || 0;
+
+const fmtUSD = v =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1
+  }).format(v);
+
+/**************************************************************
+ * RENDER
+ **************************************************************/
+function clearDashboard() {
+  $("reqValue").textContent = "—";
+  $("fundValue").textContent = "—";
+  $("pctValue").textContent = "—%";
+  $("crisisTable").innerHTML = "";
+  if (gapChart) gapChart.destroy();
+}
+
+function renderDashboard(rows) {
+  const year = Math.max(...rows.map(r => toNum(r.year)));
+  const yrRows = rows.filter(r => toNum(r.year) === year);
+
+  const req = yrRows.reduce((s, r) => s + toNum(r.requirements), 0);
+  const fund = yrRows.reduce((s, r) => s + toNum(r.funding), 0);
+  const pct = req ? (fund / req) * 100 : 0;
+
+  $("reqValue").textContent = fmtUSD(req);
+  $("fundValue").textContent = fmtUSD(fund);
+  $("pctValue").textContent = pct.toFixed(1) + "%";
+
+  // Gap chart
+  gapChart = new Chart($("gapChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Funded", "Unfunded"],
+      datasets: [{
+        data: [fund, req - fund],
+        backgroundColor: ["#1c8c67", "#f0a8a8"]
+      }]
+    },
+    options: { responsive: true }
+  });
+
+  // Underfunded table
+  const sorted = yrRows
+    .filter(r => toNum(r.requirements) > 0)
+    .map(r => ({
+      name: r.name || "Unnamed",
+      req: toNum(r.requirements),
+      fund: toNum(r.funding)
+    }))
+    .sort((a, b) => (a.fund / a.req) - (b.fund / b.req))
+    .slice(0, 10);
+
+  $("crisisTable").innerHTML = sorted.map(r => `
+    <tr>
+      <td>${r.name}</td>
+      <td>${fmtUSD(r.req)}</td>
+      <td>${fmtUSD(r.fund)}</td>
+      <td>${((r.fund / r.req) * 100).toFixed(1)}%</td>
+    </tr>
+  `).join("");
+}
+
+/**************************************************************
+ * LOAD LOGIC
+ **************************************************************/
+async function loadSource(key) {
+  clearDashboard();
+  const status = $("statusBox");
+
+  try {
+    const res = await fetch(SOURCES[key].annual);
+    if (!res.ok) throw new Error("Fetch failed");
+    const text = await res.text();
+    const rows = parseCsv(text);
+
+    renderDashboard(rows);
+
+    if (key === "local") {
+      status.className = "status info";
+      status.innerHTML =
+        `Data shown is from <strong>${SOURCES.local.label}</strong>.
+         To refresh, copy updated CSV files into the same location as this page.`;
+    } else {
+      status.className = "status info";
+      status.innerHTML =
+        `Data fetched from HDX at <strong>${new Date().toLocaleString()}</strong>.`;
     }
 
-    function hide(id) {
-      const node = el(id);
-      if (node) node.style.display = "none";
-    }
+  } catch (e) {
+    status.className = "status error";
+    status.innerHTML =
+      "<strong>HDX data could not be fetched.</strong><br/>" +
+      "The HDX server blocked this request due to browser CORS restrictions.";
+  }
+}
+
+/**************************************************************
+ * INIT
+ **************************************************************/
+document.addEventListener("DOMContentLoaded", () => {
+  loadSource("local");
+  $("dataSource").addEventListener("change", e => loadSource(e.target.value));
+});
+</script>
 
-    function setText(id, value) {
-      const node = el(id);
-      if (node) node.textContent = value;
-    }
-
-    function escapeHtml(str) {
-      return String(str ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    /*********************************************************************
-     * CSV PARSING
-     * - Handles quoted fields
-     * - Skips blank lines
-     * - Detects likely HXL row (e.g., #country, #date, #meta, etc.)
-     *********************************************************************/
-    function parseCsv(text) {
-      const rows = [];
-      let row = [];
-      let value = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const next = text[i + 1];
-
-        if (char === '"') {
-          if (inQuotes && next === '"') {
-            value += '"';
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (char === "," && !inQuotes) {
-          row.push(value);
-          value = "";
-        } else if ((char === "\n" || char === "\r") && !inQuotes) {
-          if (char === "\r" && next === "\n") i++;
-          row.push(value);
-          value = "";
-
-          // Skip fully empty lines
-          if (row.some(cell => String(cell).trim() !== "")) {
-            rows.push(row);
-          }
-          row = [];
-        } else {
-          value += char;
-        }
-      }
-
-      // Final row
-      if (value.length > 0 || row.length > 0) {
-        row.push(value);
-        if (row.some(cell => String(cell).trim() !== "")) {
-          rows.push(row);
-        }
-      }
-
-      if (!rows.length) return [];
-
-      const headers = rows[0].map(h => normalizeHeader(h));
-      let startIndex = 1;
-
-      // Detect HXL-style row (common pattern: second row begins with hashes)
-      const secondRow = rows[1] || [];
-      const isLikelyHxlRow =
-        secondRow.length &&
-        secondRow.filter(v => String(v).trim().startsWith("#")).length >= Math.max(2, Math.floor(secondRow.length / 4));
-
-      if (isLikelyHxlRow) {
-        startIndex = 2;
-      }
-
-      const objects = [];
-      for (let i = startIndex; i < rows.length; i++) {
-        const current = rows[i];
-        const obj = {};
-        headers.forEach((header, idx) => {
-          obj[header] = current[idx] !== undefined ? current[idx].trim() : "";
-        });
-        objects.push(obj);
-      }
-
-      return objects;
-    }
-
-    function normalizeHeader(header) {
-      return String(header || "")
-        .trim()
-        .replace(/\uFEFF/g, "")
-        .replace(/\s+/g, "_")
-        .replace(/[^\w#]/g, "")
-        .toLowerCase();
-    }
-
-    /*********************************************************************
-     * DATA UTILITIES
-     *********************************************************************/
-    function toNumber(value) {
-      if (value === null || value === undefined) return 0;
-      const cleaned = String(value)
-        .replace(/[$,%\s]/g, "")
-        .replace(/,/g, "");
-      const num = Number(cleaned);
-      return Number.isFinite(num) ? num : 0;
-    }
-
-    function isPositive(value) {
-      return Number.isFinite(value) && value > 0;
-    }
-
-    function formatUsd(value) {
-      const num = Number(value) || 0;
-      return new Intl.NumberFormat(CONFIG.numberLocale, {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0
-      }).format(num);
-    }
-
-    function formatUsdCompact(value) {
-      const num = Number(value) || 0;
-      return new Intl.NumberFormat(CONFIG.numberLocale, {
-        style: "currency",
-        currency: "USD",
-        notation: "compact",
-        compactDisplay: "short",
-        maximumFractionDigits: 1
-      }).format(num);
-    }
-
-    function formatPct(value, digits = 1) {
-      const safe = Number.isFinite(value) ? value : 0;
-      return `${safe.toFixed(digits)}%`;
-    }
-
-    function getLikelyField(obj, candidates) {
-      const keys = Object.keys(obj || {});
-      for (const candidate of candidates) {
-        const found = keys.find(k => k === candidate);
-        if (found) return found;
-      }
-      for (const candidate of candidates) {
-        const found = keys.find(k => k.includes(candidate));
-        if (found) return found;
-      }
-      return null;
-    }
-
-    function getLatestYear(rows) {
-      const years = rows
-        .map(r => toNumber(r.year))
-        .filter(y => y >= 1900 && y <= 2100);
-      return years.length ? Math.max(...years) : new Date().getFullYear();
-    }
-
-    function looksLikeNotSpecified(name) {
-      const s = String(name || "").trim().toLowerCase();
-      return s === "not specified" || s === "unspecified" || s === "unknown";
-    }
-
-    function looksLikePlanRecord(row) {
-      const req = toNumber(row.requirements);
-      const name = String(row.name || "");
-      // We keep positive requirement rows only; this generally aligns better with plan-level coverage.
-      return req > 0 && !looksLikeNotSpecified(name);
-    }
-
-    function safeCoverage(funding, requirements) {
-      if (!requirements || requirements <= 0) return 0;
-      return (funding / requirements) * 100;
-    }
-
-    function coverageClass(pct) {
-      if (pct < CONFIG.lowCoverageThreshold) return "low";
-      if (pct < CONFIG.warningCoverageThreshold) return "medium";
-      return "";
-    }
-
-    function clampCoverageWidth(pct) {
-      return Math.max(0, Math.min(100, pct));
-    }
-
-    function updateLastUpdated(timestamp = new Date()) {
-      const label = new Intl.DateTimeFormat(CONFIG.numberLocale, {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }).format(timestamp);
-      setText("lastUpdatedText", label);
-    }
-
-    /*********************************************************************
-     * FETCHERS
-     *********************************************************************/
-    async function fetchCsv(url) {
-      const response = await fetch(url, {
-        method: "GET",
-        cache: "no-store"
-      });
-      if (!response.ok) {
-        throw new Error(`Fetch failed (${response.status}) for ${url}`);
-      }
-      return response.text();
-    }
-
-    async function loadData() {
-      try {
-        updateLastUpdated(new Date());
-
-        const [annualCsvText, incomingCsvText] = await Promise.all([
-          fetchCsv(CONFIG.annualCsvUrl),
-          fetchCsv(CONFIG.incomingCsvUrl)
-        ]);
-
-        console.log("[Dashboard] Annual CSV fetched");
-        console.log("[Dashboard] Incoming CSV fetched");
-
-        state.annualRows = parseCsv(annualCsvText);
-        state.incomingRows = parseCsv(incomingCsvText);
-
-        console.log("[Dashboard] Parsed annual rows:", state.annualRows.slice(0, 5));
-        console.log("[Dashboard] Parsed incoming rows:", state.incomingRows.slice(0, 5));
-
-        if (!state.annualRows.length) {
-          throw new Error("Annual CSV parsed to zero rows.");
-        }
-
-        state.currentYear = getLatestYear(state.annualRows);
-
-        // Keep current-year rows that look like plan records
-        state.crisisRowsCurrentYear = state.annualRows.filter(
-          r => toNumber(r.year) === state.currentYear && looksLikePlanRecord(r)
-        );
-
-        // Aggregate current year by country/plan name
-        state.aggregatedCurrentYear = aggregateCurrentYear(state.crisisRowsCurrentYear);
-
-        // Aggregate by year for trends
-        state.aggregatedByYear = aggregateByYear(state.annualRows);
-
-        // Render everything
-        renderGlobalSnapshot();
-        renderUnderfundedTable();
-        renderCountryDropdown();
-        renderTrends();
-        updateLastUpdated(new Date());
-      } catch (error) {
-        console.error("[Dashboard] Load error:", error);
-
-        // Global
-        hide("globalLoading");
-        show("globalError");
-
-        // Table
-        hide("tableLoading");
-        show("tableError");
-
-        // Trends
-        hide("trendsLoading");
-        show("trendsError");
-
-        // Country panel
-        el("countryPanel").innerHTML = `
-          <div class="error">Data unavailable. Please check network connectivity or data source access.</div>
-        `;
-      }
-    }
-
-    /*********************************************************************
-     * AGGREGATION
-     *********************************************************************/
-    function aggregateCurrentYear(rows) {
-      const byKey = new Map();
-
-      for (const row of rows) {
-        const name = String(row.name || row.country || row.plan || "Unnamed crisis").trim();
-        const year = toNumber(row.year);
-        const requirements = toNumber(row.requirements);
-        const funding = toNumber(row.funding);
-        const countryCode = String(row.countrycode || row.country_code || row.code || "").trim();
-        const typeName = String(row.typename || row.type_name || "").trim();
-
-        const key = name.toLowerCase();
-
-        if (!byKey.has(key)) {
-          byKey.set(key, {
-            key,
-            name,
-            year,
-            countryCode,
-            typeName,
-            requirements: 0,
-            funding: 0
-          });
-        }
-
-        const entry = byKey.get(key);
-        entry.requirements += requirements;
-        entry.funding += funding;
-      }
-
-      return Array.from(byKey.values())
-        .map(item => ({
-          ...item,
-          coveragePct: safeCoverage(item.funding, item.requirements),
-          gapAmount: Math.max(0, item.requirements - item.funding),
-          gapPct: Math.max(0, 100 - safeCoverage(item.funding, item.requirements))
-        }))
-        .filter(item => item.requirements > 0)
-        .sort((a, b) => a.coveragePct - b.coveragePct);
-    }
-
-    function aggregateByYear(rows) {
-      const byYear = new Map();
-
-      for (const row of rows) {
-        if (!looksLikePlanRecord(row)) continue;
-        const year = toNumber(row.year);
-        if (!year) continue;
-
-        if (!byYear.has(year)) {
-          byYear.set(year, {
-            year,
-            requirements: 0,
-            funding: 0
-          });
-        }
-
-        const entry = byYear.get(year);
-        entry.requirements += toNumber(row.requirements);
-        entry.funding += toNumber(row.funding);
-      }
-
-      return Array.from(byYear.values())
-        .map(d => ({
-          ...d,
-          coveragePct: safeCoverage(d.funding, d.requirements)
-        }))
-        .sort((a, b) => a.year - b.year);
-    }
-
-    /*********************************************************************
-     * GLOBAL SNAPSHOT
-     *********************************************************************/
-    function renderGlobalSnapshot() {
-      hide("globalLoading");
-
-      if (!state.aggregatedCurrentYear.length) {
-        show("globalError");
-        return;
-      }
-
-      const totalRequirements = state.aggregatedCurrentYear.reduce((sum, d) => sum + d.requirements, 0);
-      const totalFunding = state.aggregatedCurrentYear.reduce((sum, d) => sum + d.funding, 0);
-      const coveragePct = safeCoverage(totalFunding, totalRequirements);
-      const gapPct = Math.max(0, 100 - coveragePct);
-      const gapAmount = Math.max(0, totalRequirements - totalFunding);
-
-      setText("globalRequirements", formatUsdCompact(totalRequirements));
-      setText("globalFunding", formatUsdCompact(totalFunding));
-      setText("globalCoverage", formatPct(coveragePct, 1));
-      setText("globalRequirementsSub", `Latest available year: ${state.currentYear}`);
-
-      const coverageCard = el("cardCoverage");
-      coverageCard.classList.remove("warning", "good");
-      if (coveragePct < CONFIG.warningCoverageThreshold) {
-        coverageCard.classList.add("warning");
-      } else if (coveragePct >= 50) {
-        coverageCard.classList.add("good");
-      }
-
-      setText(
-        "globalSummarySentence",
-        `Global appeals are ${formatPct(coveragePct, 1)} funded, leaving a ${formatPct(gapPct, 1)} gap (${formatUsdCompact(gapAmount)} unmet).`
-      );
-
-      const context = el("coverageContext");
-      const severityText =
-        coveragePct < 15
-          ? "Critical underfunding"
-          : coveragePct < 30
-          ? "Severe underfunding"
-          : coveragePct < 50
-          ? "Material funding gap"
-          : "Moderate funding position";
-
-      context.className = coveragePct < 30 ? "error" : "empty";
-      context.innerHTML = `
-        <div>
-          <strong>${severityText}:</strong> ${formatUsdCompact(totalFunding)} has been reported against
-          ${formatUsdCompact(totalRequirements)} in requirements for ${state.currentYear}, leaving
-          ${formatUsdCompact(gapAmount)} unfunded.
-          <div class="note">Coverage threshold highlight is triggered below ${CONFIG.warningCoverageThreshold}%.</div>
-        </div>
-      `;
-
-      renderGlobalGapChart(totalFunding, gapAmount, coveragePct, gapPct);
-      show("globalContent");
-    }
-
-    function renderGlobalGapChart(funded, gap, fundedPct, gapPct) {
-      const ctx = document.getElementById("globalGapChart").getContext("2d");
-
-      if (state.charts.gapChart) {
-        state.charts.gapChart.destroy();
-      }
-
-      state.charts.gapChart = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels: ["Funded", "Unfunded requirements"],
-          datasets: [{
-            data: [funded, gap],
-            backgroundColor: ["#1c8c67", "#f0a8a8"],
-            borderColor: ["#ffffff", "#ffffff"],
-            borderWidth: 3,
-            hoverOffset: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: "64%",
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                boxWidth: 14,
-                usePointStyle: true
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const value = context.raw || 0;
-                  const total = funded + gap;
-                  const pct = total ? (value / total) * 100 : 0;
-                  return `${context.label}: ${formatUsd(value)} (${formatPct(pct, 1)})`;
-                }
-              }
-            }
-          }
-        }
-      });
-
-      setText(
-        "globalGapLegend",
-        `Funded: ${formatUsdCompact(funded)} (${formatPct(fundedPct, 1)}) • Unfunded: ${formatUsdCompact(gap)} (${formatPct(gapPct, 1)})`
-      );
-    }
-
-    /*********************************************************************
-     * UNDERFUNDED TABLE
-     *********************************************************************/
-    function renderUnderfundedTable() {
-      hide("tableLoading");
-
-      if (!state.aggregatedCurrentYear.length) {
-        show("tableError");
-        return;
-      }
-
-      const body = el("crisisTableBody");
-      body.innerHTML = "";
-
-      const rows = state.aggregatedCurrentYear
-        .filter(d => d.requirements > 0)
-        .slice(0, CONFIG.defaultTopRows);
-
-      rows.forEach(item => {
-        const tr = document.createElement("tr");
-        tr.className = "clickable";
-        tr.addEventListener("click", () => {
-          selectCountry(item.key, true);
-        });
-
-        const coverageCls = coverageClass(item.coveragePct);
-        const isCritical = item.coveragePct < CONFIG.lowCoverageThreshold;
-
-        tr.innerHTML = `
-          <td>
-            <div class="country-link">${escapeHtml(item.name)}</div>
-            <div class="small muted">${escapeHtml(item.typeName || "Humanitarian plan")}</div>
-          </td>
-          <td class="mono">${formatUsdCompact(item.requirements)}</td>
-          <td class="mono">${formatUsdCompact(item.funding)}</td>
-          <td>
-            <span class="coverage-badge ${coverageCls}">
-              ${isCritical ? "🚩 " : ""}${formatPct(item.coveragePct, 1)}
-            </span>
-          </td>
-        `;
-
-        body.appendChild(tr);
-      });
-
-      show("tableContent");
-    }
-
-    /*********************************************************************
-     * COUNTRY DETAIL
-     *********************************************************************/
-    function renderCountryDropdown() {
-      const select = el("countrySelect");
-      select.innerHTML = `<option value="">Select a country to see details</option>`;
-
-      state.aggregatedCurrentYear
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .forEach(item => {
-          const option = document.createElement("option");
-          option.value = item.key;
-          option.textContent = `${item.name} (${state.currentYear})`;
-          select.appendChild(option);
-        });
-
-      select.addEventListener("change", (event) => {
-        selectCountry(event.target.value, false);
-      });
-    }
-
-    function selectCountry(countryKey, scrollToSection = false) {
-      state.selectedCountryKey = countryKey;
-      const select = el("countrySelect");
-      select.value = countryKey || "";
-
-      if (!countryKey) {
-        el("countryPanel").className = "empty";
-        el("countryPanel").innerHTML = `Select a country to see details.`;
-        return;
-      }
-
-      const item = state.aggregatedCurrentYear.find(d => d.key === countryKey);
-      if (!item) {
-        el("countryPanel").className = "error";
-        el("countryPanel").innerHTML = `Data unavailable for the selected country / crisis.`;
-        return;
-      }
-
-      renderCountryPanel(item);
-
-      if (scrollToSection) {
-        el("country-detail-section").scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
-
-    function renderCountryPanel(item) {
-      const coverageCls = coverageClass(item.coveragePct);
-      const panel = el("countryPanel");
-      panel.className = "panel";
-      panel.innerHTML = `
-        <div class="country-heading">
-          <div>
-            <h3 class="country-title">${escapeHtml(item.name)} ${item.year}</h3>
-            <div class="country-meta">${escapeHtml(item.typeName || "Humanitarian response plan")}</div>
-          </div>
-          <div class="country-meta">${item.countryCode ? `Code: ${escapeHtml(item.countryCode)}` : "Country code unavailable"}</div>
-        </div>
-
-        <div class="grid detail-cards">
-          <div class="card stat-card good">
-            <div class="stat-label">Funding Received</div>
-            <div class="metric mono">${formatUsdCompact(item.funding)}</div>
-            <div class="metric-sub">Reported funding to date</div>
-          </div>
-
-          <div class="card stat-card ${item.coveragePct < CONFIG.warningCoverageThreshold ? "warning" : ""}">
-            <div class="stat-label">Funding Gap %</div>
-            <div class="metric mono">${formatPct(item.gapPct, 1)}</div>
-            <div class="metric-sub">Unmet share of requirements</div>
-          </div>
-        </div>
-
-        <div style="margin-top:16px;">
-          <div class="stat-label" style="margin-bottom:8px;">Funding Progress</div>
-          <div class="progress-shell" aria-label="Funding progress bar">
-            <div class="progress-fill" style="width:${clampCoverageWidth(item.coveragePct)}%;"></div>
-          </div>
-          <div class="progress-text">
-            ${formatUsdCompact(item.funding)} funded of ${formatUsdCompact(item.requirements)} required
-            (${formatPct(item.coveragePct, 1)} coverage; ${formatUsdCompact(item.gapAmount)} gap)
-          </div>
-        </div>
-
-        <div class="note">
-          ${item.coveragePct < CONFIG.lowCoverageThreshold
-            ? `<span class="flag">🚩 Coverage below ${CONFIG.lowCoverageThreshold}% – priority attention suggested.</span>`
-            : `Coverage classification: <strong>${coverageCls || "standard"}</strong>.`
-          }
-        </div>
-      `;
-    }
-
-    /*********************************************************************
-     * TRENDS
-     *********************************************************************/
-    function renderTrends() {
-      hide("trendsLoading");
-
-      const yearSeries = state.aggregatedByYear;
-      if (!yearSeries.length) {
-        show("trendsError");
-        return;
-      }
-
-      renderTrendChart(yearSeries);
-      renderMonthlyChart(state.incomingRows);
-
-      show("trendsContent");
-    }
-
-    function renderTrendChart(yearSeries) {
-      const sorted = yearSeries.slice().sort((a, b) => a.year - b.year);
-      const latestSlice = sorted.slice(-CONFIG.trendYearsToShow);
-
-      const labels = latestSlice.map(d => String(d.year));
-      const requirements = latestSlice.map(d => d.requirements);
-      const funding = latestSlice.map(d => d.funding);
-      const coverage = latestSlice.map(d => Number(d.coveragePct.toFixed(1)));
-
-      const ctx = document.getElementById("trendChart").getContext("2d");
-      if (state.charts.trendChart) {
-        state.charts.trendChart.destroy();
-      }
-
-      state.charts.trendChart = new Chart(ctx, {
-        data: {
-          labels,
-          datasets: [
-            {
-              type: "bar",
-              label: "% Funded",
-              data: coverage,
-              yAxisID: "yPct",
-              backgroundColor: "rgba(0, 167, 211, 0.35)",
-              borderColor: "#00a7d3",
-              borderWidth: 1.5,
-              borderRadius: 8
-            },
-            {
-              type: "line",
-              label: "Requirements (USD)",
-              data: requirements,
-              yAxisID: "yUsd",
-              borderColor: "#1f5a95",
-              backgroundColor: "#1f5a95",
-              tension: 0.25,
-              pointRadius: 3,
-              pointHoverRadius: 5
-            },
-            {
-              type: "line",
-              label: "Funding (USD)",
-              data: funding,
-              yAxisID: "yUsd",
-              borderColor: "#1c8c67",
-              backgroundColor: "#1c8c67",
-              tension: 0.25,
-              pointRadius: 3,
-              pointHoverRadius: 5
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: "index",
-            intersect: false
-          },
-          scales: {
-            yPct: {
-              type: "linear",
-              position: "left",
-              min: 0,
-              max: 100,
-              title: {
-                display: true,
-                text: "% Funded"
-              },
-              grid: {
-                color: "rgba(203, 213, 225, 0.4)"
-              },
-              ticks: {
-                callback: value => `${value}%`
-              }
-            },
-            yUsd: {
-              type: "linear",
-              position: "right",
-              title: {
-                display: true,
-                text: "USD"
-              },
-              grid: {
-                drawOnChartArea: false
-              },
-              ticks: {
-                callback: value => formatUsdCompact(value)
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              position: "bottom"
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.dataset.label || "";
-                  if (context.dataset.yAxisID === "yPct") {
-                    return `${label}: ${formatPct(Number(context.raw), 1)}`;
-                  }
-                  return `${label}: ${formatUsd(Number(context.raw))}`;
-                }
-              }
-            }
-          }
-        }
-      });
-
-      const latest = latestSlice[latestSlice.length - 1];
-      const previous = latestSlice[latestSlice.length - 2];
-      let note = "Note: This view aggregates plan rows with positive requirements for each year.";
-      if (latest && previous) {
-        const delta = latest.coveragePct - previous.coveragePct;
-        const direction = delta >= 0 ? "higher" : "lower";
-        note += ` Latest coverage (${latest.year}) is ${formatPct(Math.abs(delta), 1)} ${direction} than ${previous.year}.`;
-      }
-      setText("trendNote", note);
-    }
-
-    function renderMonthlyChart(incomingRows) {
-      const monthAgg = aggregateIncomingByMonth(incomingRows, state.currentYear);
-
-      const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const currentYearData = labels.map((_, idx) => monthAgg.current[idx + 1] || 0);
-      const previousYearData = labels.map((_, idx) => monthAgg.previous[idx + 1] || 0);
-
-      const ctx = document.getElementById("monthlyChart").getContext("2d");
-      if (state.charts.monthlyChart) {
-        state.charts.monthlyChart.destroy();
-      }
-
-      state.charts.monthlyChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: String(state.currentYear),
-              data: currentYearData,
-              borderColor: "#1f5a95",
-              backgroundColor: "rgba(31, 90, 149, 0.08)",
-              tension: 0.3,
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              fill: false
-            },
-            {
-              label: String(state.currentYear - 1),
-              data: previousYearData,
-              borderColor: "#00a7d3",
-              backgroundColor: "rgba(0, 167, 211, 0.08)",
-              tension: 0.3,
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              borderDash: [6, 4],
-              fill: false
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: "index",
-            intersect: false
-          },
-          plugins: {
-            legend: {
-              position: "bottom"
-            },
-            tooltip: {
-              callbacks: {
-                label: (context) => `${context.dataset.label}: ${formatUsd(Number(context.raw || 0))}`
-              }
-            }
-          },
-          scales: {
-            y: {
-              title: {
-                display: true,
-                text: "Monthly incoming funding (USD)"
-              },
-              ticks: {
-                callback: value => formatUsdCompact(value)
-              },
-              grid: {
-                color: "rgba(203, 213, 225, 0.4)"
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              }
-            }
-          }
-        }
-      });
-
-      const annotation = buildMonthlyAnnotation(currentYearData, labels);
-      setText("monthlyNote", annotation);
-    }
-
-    function aggregateIncomingByMonth(rows, currentYear) {
-      // Heuristic column detection because incoming CSV schemas can vary.
-      if (!rows || !rows.length) {
-        return { current: {}, previous: {} };
-      }
-
-      const sample = rows[0];
-
-      const dateKey = getLikelyField(sample, [
-        "transactiondate",
-        "transaction_date",
-        "date",
-        "paiddate",
-        "depositdate",
-        "createddate",
-        "reportdate"
-      ]);
-
-      const amountKey = getLikelyField(sample, [
-        "paidamt",
-        "paidamtusd",
-        "amountusd",
-        "usdvalue",
-        "totalusd",
-        "amount",
-        "value"
-      ]);
-
-      console.log("[Dashboard] Incoming CSV detected dateKey:", dateKey, "amountKey:", amountKey);
-
-      const current = {};
-      const previous = {};
-
-      if (!dateKey || !amountKey) {
-        console.warn("[Dashboard] Could not reliably detect date/amount columns in incoming CSV.");
-        return { current, previous };
-      }
-
-      for (const row of rows) {
-        const dateVal = row[dateKey];
-        const amount = toNumber(row[amountKey]);
-        if (!dateVal || !isPositive(amount)) continue;
-
-        const parsed = new Date(dateVal);
-        if (Number.isNaN(parsed.getTime())) continue;
-
-        const year = parsed.getFullYear();
-        const month = parsed.getMonth() + 1;
-
-        if (year === currentYear) {
-          current[month] = (current[month] || 0) + amount;
-        } else if (year === currentYear - 1) {
-          previous[month] = (previous[month] || 0) + amount;
-        }
-      }
-
-      return { current, previous };
-    }
-
-    function buildMonthlyAnnotation(monthlyValues, labels) {
-      if (!monthlyValues || !monthlyValues.length) {
-        return "Annotation note: monthly detail unavailable.";
-      }
-
-      const maxValue = Math.max(...monthlyValues);
-      const maxIndex = monthlyValues.findIndex(v => v === maxValue);
-
-      if (maxValue <= 0 || maxIndex < 0) {
-        return "Annotation note: no monthly incoming funding values detected for the current year.";
-      }
-
-      return `Annotation note: the largest monthly funding inflow in the current year appears in ${labels[maxIndex]}, based on the fetched incoming funding transactions.`;
-    }
-
-    /*********************************************************************
-     * INITIALIZE
-     *********************************************************************/
-    document.addEventListener("DOMContentLoaded", () => {
-      // Default timestamp before actual data refresh completes
-      updateLastUpdated(new Date());
-
-      // Load everything
-      loadData();
-    });
-  </script>
 </body>
 </html>
