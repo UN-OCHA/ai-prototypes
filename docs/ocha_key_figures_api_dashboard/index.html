@@ -238,7 +238,8 @@
           headers: {
             'Accept': 'application/json',
             'APP-NAME': APP_NAME,
-            'Authorization': 'Bearer ' + API_TOKEN  // The API expects the token; using Bearer token in Authorization header as commonly done.
+           // 'Authorization': 'Bearer ' + API_TOKEN  // The API expects the token; using Bearer token in Authorization header as commonly done.
+            'API-KEY': API_TOKEN,
           }
         });
         if (!response.ok) {
