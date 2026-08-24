@@ -1,410 +1,559 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>UN Transcript Explorer (Prototype)</title>
+<title>UN Transcript Explorer</title>
 
-<link href="https://fonts.om/css2?family=Roboto:wght@300;400;500;700&display=swap
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ 
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 
 <style>
 
-:root{
-    --ocha-blue:#009EDB;
-    --ocha-dark:#002e6e;
-    --ocha-light:#e3edf6;
-    --text:#000000;
-    --grey:#999999;
-    --white:#ffffff;
+:root {
+
+  --ocha-blue: #009EDB;
+  --ocha-dark: #002E6E;
+  --ocha-mid: #0074B7;
+  --ocha-light: #E3EDF6;
+  --ocha-grey: #999999;
+
 }
 
-*{
-    box-sizing:border-box;
+* {
+  box-sizing: border-box;
 }
 
-body{
-    margin:0;
-    font-family:Roboto, Arial, sans-serif;
-    background:#ffffff;
-    color:#000;
-    line-height:1.5;
+body {
+
+  margin: 0;
+  font-family: Roboto, Arial, sans-serif;
+  background: #f7f9fb;
+  color: #000;
+
 }
 
-header{
-    background:var(--ocha-blue);
-    color:white;
-    padding:20px 32px;
+header {
+
+  background: linear-gradient(
+      135deg,
+      var(--ocha-dark),
+      var(--ocha-blue)
+  );
+
+  color: white;
+  padding: 30px 40px;
+
 }
 
-header h1{
-    margin:0;
-    font-weight:400;
+header h1 {
+
+  margin: 0;
+  font-size: 34px;
+  font-weight: 400;
+
 }
 
-header p{
-    margin:6px 0 0;
+header p {
+
+  margin-top: 8px;
+  opacity: 0.92;
+
 }
 
-.disclaimer{
-    background:#fff8e5;
-    border-left:6px solid #f58220;
-    padding:20px;
-    margin:20px;
+.wrapper {
+
+  max-width: 1200px;
+  margin: auto;
+  padding: 24px;
+
 }
 
-.disclaimer h3{
-    margin-top:0;
+.notice {
+
+  background: #fff8e9;
+  border-left: 6px solid #f58220;
+
+  border-radius: 8px;
+
+  padding: 20px;
+  margin-top: -30px;
+
+  position: relative;
+
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+
 }
 
-.container{
-    max-width:1200px;
-    margin:auto;
-    padding:20px;
+.notice h2 {
+
+  margin-top: 0;
+  font-size: 20px;
+
 }
 
-.search-panel{
-    background:white;
-    border:1px solid #c5dfef;
-    padding:25px;
-    border-radius:8px;
+.notice-grid {
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+  gap: 12px;
+
 }
 
-.search-row{
-    display:flex;
-    gap:12px;
+.notice-item {
+
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+
 }
 
-input{
-    flex:1;
-    padding:14px;
-    font-size:16px;
-    border:1px solid #999;
-    border-radius:4px;
+.search-box {
+
+  margin-top: 24px;
+
+  background: white;
+
+  padding: 24px;
+
+  border-radius: 12px;
+
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+
 }
 
-button{
-    background:#009EDB;
-    color:white;
-    border:none;
-    padding:14px 20px;
-    cursor:pointer;
-    border-radius:4px;
-    font-weight:500;
+.search-row {
+
+  display: flex;
+  gap: 12px;
+
 }
 
-button:hover{
-    background:#0074b7;
+input {
+
+  flex: 1;
+
+  padding: 14px;
+
+  border: 1px solid #cdd6df;
+
+  border-radius: 8px;
+
+  font-size: 16px;
+
 }
 
-.secondary{
-    background:#004987;
+button {
+
+  background: var(--ocha-blue);
+
+  color: white;
+
+  border: none;
+
+  padding: 14px 20px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-weight: 500;
+
 }
 
-.result{
-    margin-top:20px;
-    border:1px solid #ddd;
-    border-radius:8px;
-    padding:20px;
+button:hover {
+
+  background: var(--ocha-mid);
+
 }
 
-.result h2{
-    color:#002e6e;
-    margin-top:0;
+.stats {
+
+  display: none;
+
+  margin-top: 20px;
+
+  gap: 15px;
+
 }
 
-.meta{
-    color:#555;
-    font-size:14px;
+.stat {
+
+  background: white;
+
+  padding: 15px;
+
+  border-radius: 10px;
+
+  min-width: 150px;
+
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+
 }
 
-.match{
-    margin-top:12px;
-    padding:12px;
-    border-left:4px solid #009EDB;
-    background:#f8fbfd;
+.stat-number {
+
+  color: var(--ocha-blue);
+  font-weight: 700;
+  font-size: 30px;
+
 }
 
-.summary{
-    background:#e3edf6;
-    margin-top:15px;
-    padding:15px;
-    border-radius:4px;
+.result {
+
+  background: white;
+
+  border-radius: 12px;
+
+  padding: 24px;
+
+  margin-top: 20px;
+
+  box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+
 }
 
-.loading{
-    color:#009EDB;
-    padding:20px;
+.result h3 {
+
+  margin-top: 0;
+
+  color: var(--ocha-dark);
+
 }
 
-footer{
-    margin-top:40px;
-    padding:20px;
-    text-align:center;
-    color:#666;
-    border-top:1px solid #ddd;
+.meta {
+
+  font-size: 14px;
+
+  color: #666;
+
+  margin-bottom: 15px;
+
 }
 
-a{
-    color:#0074b7;
+.match {
+
+  background: var(--ocha-light);
+
+  border-left: 5px solid var(--ocha-blue);
+
+  padding: 12px;
+
+  margin-top: 10px;
+
+  border-radius: 4px;
+
+}
+
+.match-speaker {
+
+  font-weight: 700;
+  color: var(--ocha-dark);
+
+}
+
+.links {
+
+  margin-top: 15px;
+
+}
+
+.links a {
+
+  display: inline-block;
+
+  margin-right: 12px;
+
+  color: var(--ocha-mid);
+
+  text-decoration: none;
+
+  font-weight: 500;
+
+}
+
+.links a:hover {
+
+  text-decoration: underline;
+
+}
+
+.loading {
+
+  margin-top: 20px;
+
+  background: white;
+
+  padding: 20px;
+
+  border-radius: 12px;
+
+}
+
+footer {
+
+  text-align: center;
+
+  color: #666;
+
+  padding: 40px 20px;
+
 }
 
 </style>
+
 </head>
 
 <body>
 
 <header>
-    <h1>UN Transcript Explorer</h1>
-    <p>Prototype search interface for UN meeting transcripts</p>
+
+  <h1>UN Transcript Explorer</h1>
+
+  <p>Search and explore United Nations meeting transcripts</p>
+
 </header>
 
-<div class="disclaimer">
+<div class="wrapper">
 
-<h3>⚠ Prototype / Exploratory – Not for Decision-Making</h3>
+  <div class="notice">
 
-<p><strong>Human owner:</strong> Andrej Verity (UNOCHA)</p>
+    <h2>⚠ Prototype / Exploratory - Not for Decision-Making</h2>
 
-<p><strong>Purpose:</strong> Test searching and exploration of UN meeting transcripts.</p>
+    <div class="notice-grid">
 
-<p><strong>Data source:</strong> transcripts.un.org</p>
+      <div class="notice-item">
+        <strong>Human owner</strong><br>
+        Andrej Verity (UNOCHA)
+      </div>
 
-<p><strong>AI involvement:</strong>
-This application was vibe-coded using AI assistance.
-Transcript summaries are generated by a browser-based AI model.</p>
+      <div class="notice-item">
+        <strong>Purpose</strong><br>
+        Test searching UN transcripts
+      </div>
 
-<p><strong>Limitations:</strong>
-Searches and summaries may be incomplete or inaccurate.
-Users should verify information against the original transcript.
-This prototype must not be used as the sole basis for operational,
-policy, programmatic, financial, or other decisions.</p>
+      <div class="notice-item">
+        <strong>Data Sources</strong><br>
+        transcripts.un.org
+      </div>
 
-</div>
+      <div class="notice-item">
+        <strong>AI Involvement</strong><br>
+        Vibe-coded solution
+      </div>
 
-<div class="container">
+      <div class="notice-item">
+        <strong>Limitations</strong><br>
+        Do not use for decisions
+      </div>
 
-<div class="search-panel">
+    </div>
 
-<h2>Search Transcripts</h2>
+  </div>
 
-<div class="search-row">
+  <div class="search-box">
 
-<input id="query"
-placeholder="Example: Sudan, humanitarian access, Gaza, food security">
+    <h2>Search transcripts</h2>
 
-<button onclick="searchTranscripts()">
-Search
-</button>
+    <div class="search-row">
 
-</div>
+      <input
+        id="query"
+        placeholder="Example: Sudan, Gaza, humanitarian access, food security">
 
-</div>
+      <button onclick="searchTranscripts()">
+        Search
+      </button>
 
-<div id="results"></div>
+    </div>
+
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div id="results"></div>
 
 </div>
 
 <footer>
-United Nations Office for the Coordination of Humanitarian Affairs (OCHA)
-<br>
-Internal prototype
+
+UN Office for the Coordination of Humanitarian Affairs (OCHA)
+
 </footer>
 
-<script type="module">
+<script>
 
-let summarizer = null;
+async function searchTranscripts() {
 
-async function loadModel() {
+    const query =
+        document.getElementById("query").value.trim();
 
-    if (summarizer) return summarizer;
+    if (!query) return;
 
-    const { pipeline } =
-        await import(
-            'https://cdn.jsdelivr.net/npm/@xenova/transformers'
-        );
-
-    summarizer =
-        await pipeline(
-            'summarization',
-            'Xenova/distilbart-cnn-6-6'
-        );
-
-    return summarizer;
-}
-
-window.searchTranscripts =
-async function() {
-
-    const q =
-        document.getElementById("query")
-            .value.trim();
-
-    if (!q) return;
-
-    const container =
+    const results =
         document.getElementById("results");
 
-    container.innerHTML =
-        '<div class="loading">Searching...</div>';
+    results.innerHTML =
+        '<div class="loading">Searching transcripts...</div>';
 
     try {
 
         const response =
-            await fetch(
-                `https://transcripts.un.org/en/meetings.json?q=${encodeURIComponent(q)}&ft=1`
-            );
+          await fetch(
+            `https://transcripts.un.org/en/meetings.json?q=${encodeURIComponent(query)}&ft=1`
+          );
 
         const data =
             await response.json();
 
-        container.innerHTML = "";
+        results.innerHTML = "";
 
-        if (!data.meetings?.length) {
+        const meetings =
+            data.meetings || [];
 
-            container.innerHTML =
-                "<p>No matches found.</p>";
+        const transcriptCount =
+            meetings.filter(x => x.hasTranscript).length;
+
+        const stats =
+            document.getElementById("stats");
+
+        stats.style.display = "flex";
+
+        stats.innerHTML = `
+
+            <div class="stat">
+                <div class="stat-number">${meetings.length}</div>
+                Meetings
+            </div>
+
+            <div class="stat">
+                <div class="stat-number">${transcriptCount}</div>
+                With Transcript
+            </div>
+
+        `;
+
+        if (!meetings.length) {
+
+            results.innerHTML =
+                "<div class='result'>No results found.</div>";
 
             return;
+
         }
 
-        data.meetings.forEach(meeting => {
+        meetings.forEach(meeting => {
 
             const matches =
                 meeting.matches?.statements || [];
 
-            const html = `
+            const card =
+                document.createElement("div");
 
-            <div class="result">
+            card.className = "result";
 
-                <h2>${meeting.title}</h2>
+            card.innerHTML = `
+
+                <h3>${meeting.title}</h3>
 
                 <div class="meta">
+
                     ${meeting.date}
-                    • ${meeting.category ?? "Meeting"}
+
+                    •
+
+                    ${meeting.category || 'Meeting'}
+
                 </div>
 
-                <p>
-                    Transcript:
-                    ${meeting.hasTranscript ? "Available" : "Not available"}
-                </p>
+                <div class="links">
 
-                <p>
+                    <a target="_blank"
+                       href="https://transcripts.un.org${meeting.pageUrl}">
+                       Open Meeting
+                    </a>
 
-                <a href="https://transcripts.un.org${meeting.pageUrl}"
-                   target="_blank">
-                   Open Meeting
-                </a>
+                    ${
+                      meeting.textUrl
+                      ?
+                      `<a target="_blank"
+                          href="https://transcripts.un.org${meeting.textUrl}">
+                          Transcript
+                       </a>`
+                      :
+                      ''
+                    }
 
-                </p>
+                </div>
 
-                <button class="secondary"
-                        onclick="summarizeTranscript('${meeting.textUrl || ''}',this)">
-                    Summarize Transcript
-                </button>
+            `;
 
-                <div class="summary-placeholder"></div>
+            matches.slice(0,5).forEach(m => {
 
-                ${matches.map(m=>`
+                const speaker =
+                    m.speaker?.name ||
+                    m.speaker?.function ||
+                    "Speaker";
+
+                card.innerHTML += `
 
                     <div class="match">
 
-                        <strong>
-                        ${m.speaker?.name ??
-                           m.speaker?.function ??
-                           "Speaker"}
-                        </strong>
+                        <div class="match-speaker">
+                            ${speaker}
+                        </div>
 
-                        <p>${m.text}</p>
+                        <div>
+                            ${m.text}
+                        </div>
 
-                        <a href="https://transcripts.un.org${m.pageUrl}"
-                           target="_blank">
+                        <br>
+
+                        <a target="_blank"
+                           href="https://transcripts.un.org${m.pageUrl}">
                            Jump to timestamp
                         </a>
 
                     </div>
 
-                `).join("")}
+                `;
 
-            </div>
+            });
 
-            `;
-
-            container.insertAdjacentHTML(
-                "beforeend",
-                html
-            );
+            results.appendChild(card);
 
         });
 
     }
-    catch(error){
 
-        console.error(error);
-
-        container.innerHTML =
-            "<p>Search failed.</p>";
-    }
-}
-
-window.summarizeTranscript =
-async function(textUrl,button){
-
-    if(!textUrl){
-        alert("No transcript available.");
-        return;
-    }
-
-    const target =
-        button.parentElement
-              .querySelector(".summary-placeholder");
-
-    target.innerHTML =
-        '<div class="summary">Generating summary...</div>';
-
-    try {
-
-        const response =
-            await fetch(
-              `https://transcripts.un.org${textUrl}`
-            );
-
-        const transcript =
-            await response.text();
-
-        const model =
-            await loadModel();
-
-        const shortText =
-            transcript.substring(0,6000);
-
-        const result =
-            await model(shortText, {
-                max_length: 180,
-                min_length: 40
-            });
-
-        target.innerHTML =
-
-        `<div class="summary">
-
-        <strong>AI Summary</strong>
-
-        <p>${result[0].summary_text}</p>
-
-        </div>`;
-
-    }
-    catch(err){
+    catch(err) {
 
         console.error(err);
 
-        target.innerHTML =
+        results.innerHTML =
 
-        `<div class="summary">
-            Summary failed.
-        </div>`;
+            `<div class="result">
+                Search failed. Check browser console.
+            </div>`;
+
     }
+
 }
+
+document.getElementById("query")
+.addEventListener("keypress", function(e){
+
+    if(e.key === "Enter") {
+
+        searchTranscripts();
+
+    }
+
+});
 
 </script>
 
