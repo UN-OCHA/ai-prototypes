@@ -407,6 +407,24 @@ footer {
 
 }
 
+.ai-status {
+
+    display:inline-block;
+
+    margin-top:12px;
+
+    padding:8px 12px;
+
+    border-radius:20px;
+
+    background:rgba(255,255,255,0.15);
+
+    color:white;
+
+    font-size:14px;
+
+}
+  
 </style>
 
 </head>
@@ -419,6 +437,10 @@ footer {
 
   <p>Search and explore United Nations meeting transcripts</p>
 
+<div id="aiStatus" class="ai-status">
+🧠 AI Summaries: Not Yet Loaded
+</div>
+  
 </header>
 
 <div class="wrapper">
@@ -518,21 +540,23 @@ UN Office for the Coordination of Humanitarian Affairs (OCHA)
 
 <script>
 
+let modelReady = false;
+let modelLoading = false;
+  
 let summarizer = null;
 
 async function getSummarizer() {
 
     if (summarizer) {
-
         return summarizer;
-
     }
+
+    modelLoading = true;
 
     try {
 
-        const {
-            pipeline
-        } = await import(
+      document.getElementById("aiStatus").innerHTML = "🧠 AI Summaries: Downloading Model...";
+        const { pipeline } = await import(
             "https://cdn.jsdelivr.net/npm/@xenova/transformers"
         );
 
@@ -541,11 +565,23 @@ async function getSummarizer() {
             "Xenova/distilbart-cnn-6-6"
         );
 
+      document.getElementById("aiStatus").innerHTML = "🧠 AI Summaries: Ready";
+
+        modelReady = true;
+
         return summarizer;
 
     }
+    finally {
+
+        modelLoading = false;
+
+    }
+}
     catch(error) {
 
+        document.getElementById("aiStatus").innerHTML = "🧠 AI Summaries: Failed";
+        document.getElementById("aiStatus").style.background = "#ED1847";
         throw new Error(
             "Unable to download or initialize the local AI model."
         );
@@ -969,6 +1005,29 @@ document.getElementById("query")
 
 });
 
+window.addEventListener("load", () => {
+
+    setTimeout(() => {
+
+        getSummarizer().catch(
+            console.error
+        );
+
+    }, 3000);
+
+});
+
+window.addEventListener("load", () => {
+
+    setTimeout(() => {
+
+        getSummarizer()
+            .catch(console.error);
+
+    }, 3000);
+
+});
+  
 </script>
 
 </body>
