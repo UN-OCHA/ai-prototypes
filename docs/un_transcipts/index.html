@@ -173,6 +173,62 @@ button:hover {
 
 }
 
+.summary-btn {
+
+    background:#002E6E;
+
+    margin-top:12px;
+
+}
+
+.summary-btn:hover {
+
+    background:#004987;
+
+}
+
+.summary-status {
+
+    margin-top:12px;
+
+    padding:12px;
+
+    border-radius:8px;
+
+    background:#f4f8fb;
+
+    border-left:4px solid #009EDB;
+
+}
+
+.summary-error {
+
+    margin-top:12px;
+
+    padding:12px;
+
+    border-radius:8px;
+
+    background:#fff3f3;
+
+    border-left:4px solid #ED1847;
+
+}
+
+.summary-result {
+
+    margin-top:12px;
+
+    padding:15px;
+
+    border-radius:8px;
+
+    background:#E3EDF6;
+
+}
+
+
+  
 .stats {
 
   display: none;
@@ -527,6 +583,19 @@ const response =
                     }
 
                 </div>
+
+                <button
+                    class="summary-btn"
+                    onclick="summarizeTranscript(
+                      '${meeting.textUrl || ''}',
+                      this
+                    )">
+                  
+                    ✨ Summarize
+                  
+                  </button>
+                  
+                  <div class="summary-container"></div>
 
             `;
 
