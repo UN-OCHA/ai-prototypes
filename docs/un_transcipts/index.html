@@ -438,7 +438,7 @@ footer {
   <p>Search and explore United Nations meeting transcripts</p>
 
 <div id="aiStatus" class="ai-status">
-🧠 AI Summaries: Not Yet Loaded
+🧠 AI Summaries: Model Not Yet Available
 </div>
   
 </header>
@@ -578,7 +578,7 @@ async function getSummarizer() {
         );
 
         document.getElementById("aiStatus").innerHTML =
-            "🧠 AI Summaries: Ready";
+            "🧠 AI Summaries: Model ready";
 
         modelReady = true;
 
@@ -623,7 +623,7 @@ async function loadSummarizer() {
 
     document.getElementById("aiStatus")
         .innerHTML =
-        "🧠 AI Summaries: Ready";
+        "🧠 AI Summaries: Model ready";
 
     return summarizer;
 
