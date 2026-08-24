@@ -359,19 +359,35 @@ footer {
 
   <div class="search-box">
 
-    <h2>Search transcripts</h2>
+    <h2>Search transcript text within a selected date range</h2>
 
-    <div class="search-row">
+<div class="search-row">
 
-      <input
-        id="query"
-        placeholder="Example: Sudan, Gaza, humanitarian access, food security">
+  <input
+    id="query"
+    placeholder="Example: Sudan, Gaza, humanitarian access">
 
+</div>
+
+<div class="search-row" style="margin-top:12px;">
+
+  <div style="flex:1;">
+      <label><strong>From</strong></label>
+      <input type="date" id="fromDate">
+  </div>
+
+  <div style="flex:1;">
+      <label><strong>To</strong></label>
+      <input type="date" id="toDate">
+  </div>
+
+  <div style="display:flex;align-items:flex-end;">
       <button onclick="searchTranscripts()">
-        Search
+          Search
       </button>
+  </div>
 
-    </div>
+</div>
 
   </div>
 
@@ -404,10 +420,30 @@ async function searchTranscripts() {
 
     try {
 
-        const response =
-          await fetch(
-            `https://transcripts.un.org/en/meetings.json?q=${encodeURIComponent(query)}&ft=1`
-          );
+const fromDate =
+    document.getElementById("fromDate").value;
+
+const toDate =
+    document.getElementById("toDate").value;
+
+const params =
+    new URLSearchParams();
+
+params.append("q", query);
+
+params.append("ft", "1");
+
+if(fromDate)
+    params.append("from", fromDate);
+
+if(toDate)
+    params.append("to", toDate);
+
+const response =
+    await fetch(
+        `https://transcripts.un.org/en/meetings.json?${params.toString()}`
+    );
+
 
         const data =
             await response.json();
@@ -546,6 +582,18 @@ async function searchTranscripts() {
 
 }
 
+// Default dates
+const today = new Date();
+document.getElementById("toDate").value =
+    today.toISOString().split("T")[0];
+const oneYearAgo = new Date();
+oneYearAgo.setFullYear(
+    today.getFullYear() - 1
+);
+
+document.getElementById("fromDate").value =
+    oneYearAgo.toISOString().split("T")[0];
+  
 document.getElementById("query")
 .addEventListener("keypress", function(e){
 
