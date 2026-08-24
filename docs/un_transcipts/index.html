@@ -91,6 +91,44 @@ header p {
 
 }
 
+.notice summary {
+
+    cursor: pointer;
+
+    font-size: 20px;
+
+    font-weight: 700;
+
+    list-style: none;
+
+    outline: none;
+
+    margin-bottom: 15px;
+
+}
+
+.notice summary::-webkit-details-marker {
+
+    display:none;
+
+}
+
+.notice summary::before {
+
+    content: "▼ ";
+
+    color: #f58220;
+
+    font-size: 16px;
+
+}
+
+.notice:not([open]) summary::before {
+
+    content: "► ";
+
+}
+
 .notice h2 {
 
   margin-top: 0;
@@ -385,49 +423,52 @@ footer {
 
 <div class="wrapper">
 
-  <div class="notice">
+  <details class="notice">
 
-    <h2>⚠ Prototype / Exploratory - Not for Decision-Making</h2>
+    <summary>
+        ⚠ Prototype / Exploratory - Not for Decision-Making
+    </summary>
 
-    <div class="notice-grid compact-grid">
+    <div class="notice-grid">
 
-      <div class="notice-item">
-        <strong>Human owner</strong><br>
-        Andrej Verity (UNOCHA)
-      </div>
+        <div class="notice-item">
+            <strong>Human owner</strong><br>
+            Andrej Verity (UNOCHA)
+        </div>
 
-      <div class="notice-item">
-        <strong>Purpose</strong><br>
-        Test searching UN transcripts
-      </div>
+        <div class="notice-item">
+            <strong>Purpose</strong><br>
+            Test searching UN transcripts
+        </div>
 
-      <div class="notice-item">
-        <strong>Data Sources</strong><br>
-        transcripts.un.org
-      </div>
+        <div class="notice-item">
+            <strong>Data Sources</strong><br>
+            transcripts.un.org
+        </div>
 
-      <div class="notice-item">
-        <strong>AI Involvement</strong><br>
-        Vibe-coded solution
-      </div>
+        <div class="notice-item">
+            <strong>AI Involvement</strong><br>
+            Vibe-coded solution
+        </div>
 
-      <div class="notice-item">
-        <strong>Limitations</strong><br>
-        Do not use for decisions
-      </div>
+        <div class="notice-item">
+            <strong>Limitations</strong><br>
+            Do not use for decisions
+        </div>
 
-      <div class="notice-item notice-item-wide">
-      
-          <strong>Experimental Feature</strong><br>
-      
-          Browser-based AI summaries download a local model.
-          First use may require downloading tens of megabytes.
-      
-      </div>
-      
+        <div class="notice-item notice-item-wide">
+
+            <strong>Experimental Feature</strong><br>
+
+            Browser-based AI summaries download a local
+            language model. First use may require downloading
+            tens of megabytes.
+
+        </div>
+
     </div>
 
-  </div>
+</details>
 
   <div class="search-box">
 
