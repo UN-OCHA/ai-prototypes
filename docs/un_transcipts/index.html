@@ -555,7 +555,9 @@ async function getSummarizer() {
 
     try {
 
-      document.getElementById("aiStatus").innerHTML = "🧠 AI Summaries: Downloading Model...";
+        document.getElementById("aiStatus").innerHTML =
+            "🧠 AI Summaries: Downloading Model...";
+
         const { pipeline } = await import(
             "https://cdn.jsdelivr.net/npm/@xenova/transformers"
         );
@@ -565,26 +567,30 @@ async function getSummarizer() {
             "Xenova/distilbart-cnn-6-6"
         );
 
-      document.getElementById("aiStatus").innerHTML = "🧠 AI Summaries: Ready";
+        document.getElementById("aiStatus").innerHTML =
+            "🧠 AI Summaries: Ready";
 
         modelReady = true;
 
         return summarizer;
 
     }
-    finally {
-
-        modelLoading = false;
-
-    }
-}
     catch(error) {
 
-        document.getElementById("aiStatus").innerHTML = "🧠 AI Summaries: Failed";
-        document.getElementById("aiStatus").style.background = "#ED1847";
+        document.getElementById("aiStatus").innerHTML =
+            "🧠 AI Summaries: Failed";
+
+        document.getElementById("aiStatus").style.background =
+            "#ED1847";
+
         throw new Error(
             "Unable to download or initialize the local AI model."
         );
+
+    }
+    finally {
+
+        modelLoading = false;
 
     }
 
@@ -1017,16 +1023,6 @@ window.addEventListener("load", () => {
 
 });
 
-window.addEventListener("load", () => {
-
-    setTimeout(() => {
-
-        getSummarizer()
-            .catch(console.error);
-
-    }, 3000);
-
-});
   
 </script>
 
