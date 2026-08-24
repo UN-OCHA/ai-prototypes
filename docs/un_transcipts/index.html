@@ -100,9 +100,12 @@ header p {
 
 .notice-grid {
 
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
-  gap: 12px;
+  display:grid;
+
+  grid-template-columns:
+      repeat(4,1fr);
+
+  gap:10px;
 
 }
 
@@ -114,6 +117,10 @@ header p {
 
 }
 
+.notice-item-wide {
+  grid-column: span 3;
+}
+  
 .search-box {
 
   margin-top: 24px;
@@ -382,7 +389,7 @@ footer {
 
     <h2>⚠ Prototype / Exploratory - Not for Decision-Making</h2>
 
-    <div class="notice-grid">
+    <div class="notice-grid compact-grid">
 
       <div class="notice-item">
         <strong>Human owner</strong><br>
@@ -409,9 +416,13 @@ footer {
         Do not use for decisions
       </div>
 
-      <div class="notice-item">
-        <strong>Experimental Feature</strong><br>
-        Summaries are browser-based AI which downloads a local language model. Initial use may require downloading tens of megabytes.
+      <div class="notice-item notice-item-wide">
+      
+          <strong>Experimental Feature</strong><br>
+      
+          Browser-based AI summaries download a local model.
+          First use may require downloading tens of megabytes.
+      
       </div>
       
     </div>
@@ -502,6 +513,22 @@ async function getSummarizer() {
 
 }
 
+function formatDate(dateString) {
+
+    const date =
+        new Date(dateString);
+
+    return date.toLocaleDateString(
+        "en-GB",
+        {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        }
+    );
+
+}
+  
 async function summarizeTranscript(
     textUrl,
     button
@@ -589,15 +616,15 @@ async function summarizeTranscript(
         const text =
             transcript.substring(
                 0,
-                6000
+                12000
             );
 
         const result =
             await model(
                 text,
                 {
-                    min_length:40,
-                    max_length:180
+                    min_length:180,
+                    max_length:500
                 }
             );
 
@@ -783,7 +810,7 @@ const response =
 
                 <div class="meta">
 
-                    ${meeting.date}
+                    ${formatDate(meeting.date)}
 
                     •
 
