@@ -871,7 +871,13 @@ const response =
     await fetch(
         `https://transcripts.un.org/en/meetings.json?${params.toString()}`
     );
+if (!response.ok) {
 
+    throw new Error(
+        `API returned status ${response.status}`
+    );
+
+}
 
         const data =
             await response.json();
@@ -1009,17 +1015,88 @@ const response =
 
     }
 
-    catch(err) {
+catch(err) {
 
-        console.error(err);
+    console.error(err);
 
-        results.innerHTML =
+    if (
+        err.message &&
+        err.message.includes("Failed to fetch")
+    ) {
 
-            `<div class="result">
-                Search failed. Check browser console.
-            </div>`;
+        results.innerHTML = `
+
+            <div class="result">
+
+                <h3>Unable to connect to the UN Transcripts API</h3>
+
+                <p>
+
+                    Your browser was unable to reach
+                    transcripts.un.org.
+
+                </p>
+
+                <p>
+
+                    This is often caused by:
+
+                </p>
+
+                <ul>
+
+                    <li>Browser extensions (AdBlock, uBlock, Privacy Badger, etc.)</li>
+
+                    <li>Corporate security or web filtering software</li>
+
+                    <li>Network restrictions</li>
+
+                    <li>Temporary connectivity issues</li>
+
+                </ul>
+
+                <p>
+
+                    Try opening the UN Transcripts site directly:
+
+                    <br>
+
+                    <a href="https://transcripts.un.org"
+                       target="_blank">
+
+                       transcripts.un.org
+
+                    </a>
+
+                </p>
+
+            </div>
+
+        `;
+
+    } else {
+
+        results.innerHTML = `
+
+            <div class="result">
+
+                <h3>Search Error</h3>
+
+                <p>
+
+                    An unexpected error occurred.
+
+                </p>
+
+                <pre>${err.message || err}</pre>
+
+            </div>
+
+        `;
 
     }
+
+}
 
 }
 
