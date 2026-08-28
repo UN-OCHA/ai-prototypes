@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Location | FTS</title>
+<style>
+  :root{
+    --navy:#1a3b5d;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --topbar-navy:#0a2540;
+    --mint:#5ce8c5;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--sans);
+    color:#333;
+    background:#fff;
+    font-size:14px;
+  }
+
+  /* ---- OCHA utility bar ---- */
+  .ocha-topbar{
+    background:var(--topbar-navy);
+    color:#fff;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 32px;
+    height:44px;
+    font-size:14px;
+  }
+  .ocha-topbar .ocha-left,
+  .ocha-topbar .ocha-right{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:#fff;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .ocha-topbar svg{ flex-shrink:0; }
+  .ocha-topbar .chevron{
+    width:10px; height:10px;
+    border-right:2px solid #fff;
+    border-bottom:2px solid #fff;
+    transform:rotate(45deg);
+    margin-left:2px;
+  }
+
+  /* ---- FTS nav bar ---- */
+  .fts-navbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 32px;
+    border-bottom:1px solid #e5e5e5;
+  }
+  .fts-logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    text-decoration:none;
+  }
+  .fts-logo .fts-wordmark{
+    line-height:1.15;
+    color:#0a2540;
+    font-size:15px;
+    font-weight:600;
+  }
+  .fts-nav-menu{
+    display:flex;
+    align-items:center;
+    gap:28px;
+  }
+  .fts-nav-menu .nav-item{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    font-size:14px;
+    font-weight:700;
+    color:#0a2540;
+    letter-spacing:0.01em;
+    text-decoration:none;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .fts-nav-menu .nav-item .chevron-down{
+    width:8px; height:8px;
+    border-right:2px solid #5ce8c5;
+    border-bottom:2px solid #5ce8c5;
+    transform:rotate(45deg);
+    margin-top:-3px;
+  }
+  .report-btn{
+    background:var(--mint);
+    color:#0a2540;
+    font-weight:700;
+    font-size:13px;
+    padding:14px 22px;
+    letter-spacing:0.02em;
+    white-space:nowrap;
+    text-decoration:none;
+    display:inline-block;
+    cursor:pointer;
+  }
+  .fts-navbar{
+    position:relative;
+  }
+  .nav-dropdown{
+    position:relative;
+  }
+  .nav-trigger{
+    background:none;
+    border:none;
+    font:inherit;
+    padding:0;
+  }
+  .nav-dropdown.open .nav-trigger .chevron-down{
+    transform:rotate(225deg);
+    margin-top:3px;
+  }
+  .nav-dropdown-panel{
+    display:none;
+    position:absolute;
+    top:calc(100% + 14px);
+    left:0;
+    min-width:260px;
+    background:#fff;
+    box-shadow:0 12px 28px rgba(10,37,64,0.18);
+    padding:22px 24px 20px;
+    z-index:50;
+  }
+  .nav-dropdown.open .nav-dropdown-panel{
+    display:block;
+  }
+  .dd-link{
+    display:block;
+    font-size:15px;
+    font-weight:400;
+    color:#0a2540;
+    text-decoration:none;
+    padding:10px 0;
+  }
+  .dd-link:hover{ color:#2a6fb0; }
+  .dd-search{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid #e5e5e5;
+  }
+  .dd-search-input{
+    width:100%;
+    border:none;
+    border-bottom:1px solid #999;
+    padding:4px 2px 8px;
+    font-size:14px;
+    font-family:inherit;
+    color:#333;
+    outline:none;
+    box-sizing:border-box;
+  }
+  .dd-search-input::placeholder{ color:#999; }
+  .dd-results{
+    display:none;
+    margin-top:8px;
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .dd-results.show{ display:block; }
+  .dd-result-item{
+    display:block;
+    padding:6px 4px;
+    font-size:13.5px;
+    color:#333;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  a.dd-result-item:hover{ background:#f4f6f8; color:#2a6fb0; }
+  .dd-result-empty{
+    padding:6px 4px;
+    font-size:13px;
+    color:#999;
+    font-style:italic;
+  }
+  .nav-indicator-track{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:3px;
+    background:#e7e7e7;
+  }
+  .nav-indicator-fill{
+    position:absolute;
+    top:0; height:3px;
+    width:0;
+    background:var(--mint);
+    transition:left .15s ease, width .15s ease;
+  }
+  @media (max-width:1100px){
+    .fts-nav-menu{ display:none; }
+  }
+
+  /* ---- Content ---- */
+  .content{
+    max-width:820px;
+    margin:0 auto;
+    padding:56px 32px 80px;
+  }
+  .breadcrumb{
+    font-size:13px;
+    margin-bottom:18px;
+  }
+  .breadcrumb a{ color:#2a6fb0; text-decoration:none; }
+  .breadcrumb a:hover{ text-decoration:underline; }
+  .content h1{
+    margin:0 0 24px;
+    font-size:32px;
+    font-weight:700;
+    color:#1a3b5d;
+  }
+  .stat-row{
+    display:flex;
+    gap:24px;
+    flex-wrap:wrap;
+    margin-bottom:24px;
+  }
+  .stat-card{
+    flex:1;
+    min-width:200px;
+    background:#f4f6f8;
+    border:1px solid #d9d9d9;
+    padding:20px 22px;
+  }
+  .stat-card .label{
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:#5a7186;
+    margin-bottom:6px;
+  }
+  .stat-card .value{
+    font-size:24px;
+    font-weight:700;
+    color:#1a3b5d;
+    font-family:Arial,Helvetica,sans-serif;
+  }
+  .bar-wrap{
+    margin:8px 0 28px;
+  }
+  .bar-track{
+    height:14px;
+    background:#e7e7e7;
+    border-radius:7px;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--mint);
+  }
+  .bar-label{
+    font-size:12.5px;
+    color:#5a7186;
+    margin-top:6px;
+  }
+  .note{
+    margin-top:28px;
+    padding:16px 18px;
+    background:#f4f6f8;
+    border-left:3px solid #7ea2c2;
+    font-size:13.5px;
+    line-height:1.6;
+    color:#555;
+  }
+  .not-found{
+    font-size:15px;
+    line-height:1.6;
+    color:#555;
+  }
+  .back-link{
+    display:inline-block;
+    margin-top:32px;
+    background:var(--navy);
+    color:#fff;
+    text-decoration:none;
+    font-size:14px;
+    font-weight:700;
+    padding:10px 20px;
+    border-radius:2px;
+  }
+  .back-link:hover{ background:#12283f; }
+
+  /* ---- Footer ---- */
+  .site-footer{
+    background:#0a2540;
+    color:#cbd6e2;
+    padding:36px 32px 28px;
+    margin-top:24px;
+  }
+  .footer-links{
+    display:flex;
+    gap:32px;
+    flex-wrap:wrap;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    margin-bottom:36px;
+  }
+  .footer-links a{
+    color:#e4ebf2;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .footer-links a:hover{ text-decoration:underline; }
+  .footer-bottom{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:20px;
+    border-top:1px solid rgba(255,255,255,0.12);
+    padding-top:24px;
+  }
+  .footer-service{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .footer-service .provided-by{
+    font-size:12px;
+    color:#9fb0c2;
+  }
+  .footer-service .lockup-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .footer-service .lockup-row img{
+    height:38px;
+    width:auto;
+    display:block;
+  }
+  .footer-service .lockup-fallback{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    height:38px;
+    font-weight:700;
+    font-size:20px;
+    letter-spacing:0.06em;
+    color:#fff;
+  }
+  .footer-service .divider{
+    width:1px;
+    align-self:stretch;
+    background:rgba(255,255,255,0.25);
+  }
+  .footer-service .blurb{
+    font-size:13px;
+    line-height:1.5;
+    max-width:520px;
+    color:#cbd6e2;
+  }
+  .footer-right{
+    display:flex;
+    align-items:center;
+    gap:22px;
+  }
+  .footer-right .license-text{
+    font-size:12.5px;
+    line-height:1.5;
+    color:#9fb0c2;
+    max-width:260px;
+    text-align:right;
+  }
+  .cc-icon{ flex-shrink:0; }
+  .disclaimer-banner{
+    background:#b91c1c;
+    color:#fff;
+    text-align:center;
+    font-family:var(--sans);
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.01em;
+    padding:9px 16px;
+    line-height:1.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="disclaimer-banner">DISCLAIMER: This is a rapid prototype to assess the ability of AI coding tools in replicating the original FTS page. It is NOT to be used for reporting.</div>
+
+<div class="ocha-topbar">
+  <a class="ocha-left" href="placeholder.html?page=ocha-services">
+    <img src="assets/un-emblem-white.png" alt="UN" width="19" height="19"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"
+         style="display:inline-block;">
+    <svg width="19" height="19" viewBox="0 0 100 100" fill="none" style="display:none;">
+      <g fill="#fff">
+        <g><ellipse cx="46" cy="92" rx="7" ry="2.4" transform="rotate(100 46 92)"></ellipse></g>
+        <g><ellipse cx="38" cy="86" rx="7" ry="2.4" transform="rotate(115 38 86)"></ellipse></g>
+        <g><ellipse cx="30" cy="78" rx="7" ry="2.4" transform="rotate(130 30 78)"></ellipse></g>
+        <g><ellipse cx="24" cy="67" rx="7" ry="2.4" transform="rotate(145 24 67)"></ellipse></g>
+        <g><ellipse cx="20" cy="55" rx="7" ry="2.4" transform="rotate(160 20 55)"></ellipse></g>
+        <g><ellipse cx="18" cy="43" rx="7" ry="2.4" transform="rotate(175 18 43)"></ellipse></g>
+        <g><ellipse cx="18" cy="31" rx="7" ry="2.4" transform="rotate(190 18 31)"></ellipse></g>
+        <g><ellipse cx="54" cy="92" rx="7" ry="2.4" transform="rotate(80 54 92)"></ellipse></g>
+        <g><ellipse cx="62" cy="86" rx="7" ry="2.4" transform="rotate(65 62 86)"></ellipse></g>
+        <g><ellipse cx="70" cy="78" rx="7" ry="2.4" transform="rotate(50 70 78)"></ellipse></g>
+        <g><ellipse cx="76" cy="67" rx="7" ry="2.4" transform="rotate(35 76 67)"></ellipse></g>
+        <g><ellipse cx="80" cy="55" rx="7" ry="2.4" transform="rotate(20 80 55)"></ellipse></g>
+        <g><ellipse cx="82" cy="43" rx="7" ry="2.4" transform="rotate(5 82 43)"></ellipse></g>
+        <g><ellipse cx="82" cy="31" rx="7" ry="2.4" transform="rotate(-10 82 31)"></ellipse></g>
+      </g>
+      <g stroke="#fff" stroke-width="1.6" fill="none">
+        <circle cx="50" cy="45" r="27"></circle>
+        <circle cx="50" cy="45" r="19"></circle>
+        <circle cx="50" cy="45" r="10"></circle>
+        <line x1="23" y1="45" x2="77" y2="45"></line>
+        <line x1="50" y1="18" x2="50" y2="72"></line>
+        <path d="M31 26 C42 34 58 34 69 26"></path>
+        <path d="M31 64 C42 56 58 56 69 64"></path>
+      </g>
+      <path d="M42 34 C38 40 40 48 36 52 C40 54 46 50 50 52 C54 48 62 50 64 44 C58 42 56 36 50 38 C46 36 44 32 42 34Z" fill="#fff"></path>
+    </svg>
+    <span>OCHA Services</span>
+    <span class="chevron"></span>
+  </a>
+  <a class="ocha-right" href="placeholder.html?page=tutorials">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6">
+      <rect x="3" y="3" width="8" height="8" rx="1"></rect>
+      <rect x="13" y="3" width="8" height="8" rx="1"></rect>
+      <rect x="3" y="13" width="8" height="8" rx="1"></rect>
+    </svg>
+    <span>Tutorials</span>
+  </a>
+</div>
+
+<div class="fts-navbar">
+  <a class="fts-logo" href="index.html">
+    <img src="assets/fts-logo.png" alt="FTS — Financial Tracking Service" height="56"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"
+         onload="this.parentElement.querySelector('.fts-wordmark').style.display='none';"
+         style="display:inline-block;">
+    <svg width="64" height="56" viewBox="0 0 60 52" fill="none" style="display:none;">
+      <path d="M30 6 C14 6 6 18 6 26 C6 34 14 46 30 46" stroke="#0a2540" stroke-width="4" fill="none"></path>
+      <path d="M30 6 C46 6 54 18 54 26 C54 34 46 46 30 46" stroke="#5ce8c5" stroke-width="4" fill="none"></path>
+      <text x="30" y="32" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="19" font-weight="800" fill="#0a2540">fts</text>
+    </svg>
+    <div class="fts-wordmark">Financial<br>Tracking<br>Service</div>
+  </a>
+  <div class="fts-nav-menu" id="ftsNavMenu">
+    <div class="nav-dropdown" data-dd="countries">
+      <button type="button" class="nav-item nav-trigger">COUNTRIES <span class="chevron-down"></span></button>
+      <div class="nav-dropdown-panel">
+        <a class="dd-link" href="index.html">Global overview</a>
+        <a class="dd-link" href="index.html">All countries</a>
+        <div class="dd-search">
+          <input type="text" class="dd-search-input" placeholder="Search countries" data-dd-search="countries" autocomplete="off">
+          <div class="dd-results" data-dd-results="countries"></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-dropdown" data-dd="plans">
+      <button type="button" class="nav-item nav-trigger">COORDINATED PLANS <span class="chevron-down"></span></button>
+      <div class="nav-dropdown-panel">
+        <a class="dd-link" href="placeholder.html?page=plans">Coordinated Plans overview</a>
+        <div class="dd-search">
+          <input type="text" class="dd-search-input" placeholder="Search coordinated plans" autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <div class="nav-dropdown" data-dd="donors">
+      <button type="button" class="nav-item nav-trigger">DONORS <span class="chevron-down"></span></button>
+      <div class="nav-dropdown-panel">
+        <a class="dd-link" href="placeholder.html?page=donors-member-states">Member states</a>
+        <a class="dd-link" href="placeholder.html?page=donors-multilateral">Multilateral organizations</a>
+        <a class="dd-link" href="placeholder.html?page=donors-other">Other</a>
+        <div class="dd-search">
+          <input type="text" class="dd-search-input" placeholder="Search donors" data-dd-search="donors" autocomplete="off">
+          <div class="dd-results" data-dd-results="donors"></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-dropdown" data-dd="sectors">
+      <button type="button" class="nav-item nav-trigger">GLOBAL SECTORS <span class="chevron-down"></span></button>
+      <div class="nav-dropdown-panel">
+        <a class="dd-link" href="placeholder.html?page=sectors">Global sectors</a>
+        <a class="dd-link" href="placeholder.html?page=sectors">All global sectors</a>
+        <div class="dd-search">
+          <input type="text" class="dd-search-input" placeholder="Search global sectors" data-dd-search="sectors" autocomplete="off">
+          <div class="dd-results" data-dd-results="sectors"></div>
+        </div>
+      </div>
+    </div>
+    <a class="nav-item" href="placeholder.html?page=pooled-fund">POOLED FUND</a>
+    <a class="nav-item" href="placeholder.html?page=analysis">ANALYSIS</a>
+  </div>
+  <a class="report-btn" href="placeholder.html?page=report">REPORT TO FTS</a>
+  <div class="nav-indicator-track"><div class="nav-indicator-fill" id="navIndicatorFill"></div></div>
+</div>
+
+<div class="content">
+  <div class="breadcrumb"><a href="index.html">Total reported funding 2026</a> / <span id="crumbTitle"></span></div>
+  <h1 id="pageTitle">Location</h1>
+  <div id="foundBlock" style="display:none;">
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="label">Total incoming funding</div>
+        <div class="value" id="fundedVal">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total pledges</div>
+        <div class="value" id="pledgedVal">-</div>
+      </div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-track"><div class="bar-fill" id="barFill" style="width:0%;"></div></div>
+      <div class="bar-label" id="barLabel"></div>
+    </div>
+    <div class="note">Figures shown here are read directly from this rebuild's own embedded 2026 Global Funding Overview snapshot (the same data set that powers the main table) — nothing on this page is fetched from fts.unocha.org.</div>
+  </div>
+  <div id="notFoundBlock" class="not-found" style="display:none;">
+    No entry for this location was found in the embedded 2026 Global Funding Overview snapshot.
+  </div>
+  <a class="back-link" href="index.html">&larr; Back to Total reported funding 2026</a>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="placeholder.html?page=about">ABOUT</a>
+    <a href="placeholder.html?page=blog">BLOG</a>
+    <a href="placeholder.html?page=contact">CONTACT</a>
+    <a href="placeholder.html?page=privacy-policy">PRIVACY POLICY</a>
+    <a href="placeholder.html?page=terms-of-use">TERMS OF USE</a>
+    <a href="placeholder.html?page=api">API</a>
+    <a href="placeholder.html?page=glossary">GLOSSARY</a>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-service">
+      <div class="provided-by">Service provided by</div>
+      <div class="lockup-row">
+        <img src="assets/ocha-un-lockup-white.png" alt="OCHA"
+             onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'lockup-fallback',textContent:'◎ OCHA'}))">
+        <div class="divider"></div>
+        <div class="blurb">OCHA coordinates the global emergency response to save lives and protect people in humanitarian crises. We advocate for effective and principled humanitarian action by all, for all.</div>
+      </div>
+    </div>
+    <div class="footer-right">
+      <div class="license-text">Except where otherwise noted, content on this site is licensed under a Creative Commons BY 4.0 International license.</div>
+      <svg class="cc-icon" width="34" height="34" viewBox="0 0 34 34" fill="none">
+        <rect x="1" y="1" width="32" height="32" rx="4" stroke="#cbd6e2" stroke-width="1.4"></rect>
+        <circle cx="17" cy="17" r="10" stroke="#cbd6e2" stroke-width="1.4"></circle>
+        <text x="17" y="21.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700" fill="#cbd6e2">cc</text>
+      </svg>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Same 2026 Global Funding Overview snapshot embedded in ../index.html
+   (location, funded, pledged), duplicated here so this page also works
+   standalone from file:// with no fetch and no server. This JSON snapshot
+   is this rebuild's only source of funding data. */
+const FUNDING_DATA = [["*(Multi-Location)",0,0],["*Multiple locations (shared)",273524306,0],["*Not Specified",175111563,1125619],["Afghanistan",694932413,48290864],["Albania",4396094,4521],["Algeria",13390222,3274562],["Angola",3269807,0],["Anguilla (United Kingdom)",173680,0],["Argentina",964481,0],["Armenia",1206874,0],["Aruba (Netherlands)",0,0],["Azerbaijan",50751,0],["Bahamas",500000,0],["Bangladesh",519358877,3394512],["Barbados",2794984,0],["Belize",990107,0],["Benin",8415572,0],["Bolivia, Plurinational State of",13797747,0],["Bosnia and Herzegovina",1957855,0],["Botswana",133333,0],["Brazil",7473070,0],["Bulgaria",45576,0],["Burkina Faso",211449294,2122217],["Burundi",29131615,0],["Cambodia",10635219,0],["Cameroon",92604926,0],["Central African Republic",204888643,320920],["Chad",356612832,3568296],["Chile",581128,0],["China",13911,0],["Colombia",364042040,1538481],["Comoros",105178,0],["Congo",10245416,0],["Costa Rica",23042175,0],["Cuba",46090284,0],["Curaçao (Netherlands)",0,0],["Côte d'Ivoire",7235894,0],["Democratic Republic of the Congo",1089303629,33175809],["Denmark",2162239,0],["Djibouti",5292352,2243622],["Dominican Republic",4703734,0],["Ecuador",47658134,0],["Egypt",53443229,459770],["El Salvador",29412142,0],["Equatorial Guinea",7554016,0],["Eritrea",6006760,0],["Eswatini",466666,0],["Ethiopia",636392041,2285781],["Fiji",2995275,0],["France",460335,0],["Gabon",1366666,0],["Gambia",1510339,94076],["Georgia",722350,0],["Ghana",19379978,255533],["Global",3182290470,391166502],["Greece",44598,0],["Grenada",144251,0],["Guatemala",73273529,0],["Guinea",682302,102353],["Guinea-Bissau",2053333,0],["Guyana",267110,0],["Haiti",437726382,10999023],["Honduras",79449852,0],["Hong Kong",79200,0],["India",1558445,25910],["Indonesia",13766283,111528],["Iran, Islamic Republic of",57050635,0],["Iraq",54605179,6284486],["Italy",576701,0],["Jamaica",26689167,0],["Jordan",74045039,4732598],["Kazakhstan",1851573,0],["Kenya",305235679,108719],["Korea, Democratic People's Republic of",2141464,0],["Kuwait",0,0],["Kyrgyzstan",951904,0],["Lao People's Democratic Republic",2270736,0],["Lebanon",612574821,45886673],["Lesotho",2851065,0],["Liberia",6602315,0],["Libya",12649644,3512881],["Madagascar",51290257,0],["Malawi",6739685,0],["Malaysia",594676,0],["Maldives",85153,0],["Mali",149577115,4862],["Marshall Islands",1000000,0],["Mauritania",13926336,1663550],["Mauritius",41493,0],["Mexico",10250649,0],["Micronesia, Federated States of",3616210,0],["Moldova, Republic of",46745636,5393020],["Mongolia",558034,0],["Montenegro",1307536,0],["Morocco",4286627,5425],["Mozambique",242291459,3790146],["Myanmar",433373432,15209601],["Namibia",4151644,0],["Nepal",3945598,78561],["Nicaragua",5975244,0],["Niger",117377824,2285404],["Nigeria",365515100,2993],["Norway",250000,0],["Occupied Palestinian Territory",3095104717,44978994],["Oman",5542593,0],["Pakistan",46558620,1405962],["Palau",7500000,0],["Panama",1414761,0],["Papua New Guinea",2150000,0],["Paraguay",0,0],["Peru",20451825,0],["Philippines",15358735,2096000],["Poland",16377471,0],["Qatar",11714437,0],["Region - Asia and the Pacific",25545701,510856],["Region - Europe",7985006,375390],["Region - Latin America and the Caribbean",22775466,1890166],["Region - Middle East and Northern Africa",19892327,0],["Region - Southern and Eastern Africa",19411209,0],["Region - West and Central Africa",31004707,0],["Romania",546666,0],["Russian Federation",58111,0],["Rwanda",10274014,850411],["Saint Kitts and Nevis",200400,0],["Saint Vincent and the Grenadines",259238,0],["Senegal",8266402,1612511],["Serbia",138863,0],["Sierra Leone",4037077,0],["Singapore",41591,0],["Solomon Islands",3134174,0],["Somalia",296541045,5692027],["South Africa",802532,477],["South Sudan",542003744,4156268],["Sri Lanka",28311699,751396],["Sudan",1245789692,24361798],["Switzerland",10261879,0],["Syrian Arab Republic",978979303,32539053],["São Tomé and Príncipe",887833,0],["Tajikistan",5495490,0],["Tanzania, United Republic of",20495423,193781],["Thailand",5723298,0],["Timor-Leste",54901,0],["Togo",7870333,0],["Trinidad and Tobago",764211,0],["Tunisia",9162044,656731],["Turkmenistan",49371,0],["Türkiye",40822459,7459],["Uganda",250331949,0],["Ukraine",1958857548,96290987],["United Arab Emirates",115480,0],["United States",1476806,0],["Uruguay",0,0],["Uzbekistan",53971,0],["Vanuatu",172678,0],["Venezuela, Bolivarian Republic of",478853821,21906705],["Viet Nam",5449114,0],["Yemen",564728322,42190274],["Zambia",7421416,0],["Zimbabwe",14695342,0]];
+
+const SOURCE_ORGS = ["11.11.11 - Koepel van de Vlaamse Noord-Zuidbeweging vzw","ACT Alliance / DanChurchAid","ActionAid International","Action Contre la Faim - France","Adaptation Fund","Afghanistan Humanitarian Fund","African Development Bank","Agence Française de Développement","Agencia Andaluza de Cooperación Internacional para el Desarrollo","Agencia Española de Cooperación Internacional para el Desarrollo","Australian Government","CARE International","Caritas Internationalis","Catholic Relief Services","Danish Refugee Council","European Commission's Humanitarian Aid and Civil Protection department","Germany, Government of","International Committee of the Red Cross","International Federation of Red Cross and Red Crescent Societies","International Organization for Migration","International Rescue Committee","Japan, Government of","Norwegian Refugee Council","Oxfam","Plan International","Private (individuals & organizations)","Save the Children","Sweden, Government of","Switzerland, Government of","United Kingdom, Government of","United States of America, Government of","World Food Programme","World Health Organization","World Vision International"];
+const DEST_ORGS = ["Action Contre la Faim - France","CARE International","Caritas Internationalis","Catholic Relief Services","Danish Refugee Council","Government of Afghanistan","Government of Sudan","Government of Ukraine","International Committee of the Red Cross","International Federation of Red Cross and Red Crescent Societies","International Organization for Migration","International Rescue Committee","Norwegian Refugee Council","Oxfam","Plan International","Save the Children","UN Children's Fund","UN High Commissioner for Refugees","UN Office for the Coordination of Humanitarian Affairs","UN Population Fund","UN Relief and Works Agency for Palestine Refugees","World Food Programme","World Health Organization","World Vision International"];
+const SECTORS = ["Agriculture","Camp Coordination / Management","Coordination and support services","Early Recovery","Education","Emergency Shelter and NFI","Emergency Telecommunications","Food Security","Health","Logistics","Mine Action","Nutrition","Protection","Water Sanitation Hygiene","Multi-sector"];
+
+function fmtUSD(n){
+  return "US$" + Math.round(n).toLocaleString("en-US");
+}
+
+const params = new URLSearchParams(window.location.search);
+const loc = params.get("loc") || "";
+document.getElementById("crumbTitle").textContent = loc || "Location";
+document.getElementById("pageTitle").textContent = loc || "Location";
+document.title = (loc || "Location") + " | FTS";
+
+const entry = FUNDING_DATA.find(r => r[0] === loc);
+
+if(entry){
+  const funded = entry[1], pledged = entry[2];
+  document.getElementById("fundedVal").textContent = fmtUSD(funded);
+  document.getElementById("pledgedVal").textContent = fmtUSD(pledged);
+  const total = funded + pledged;
+  const pct = total > 0 ? Math.round((funded / total) * 100) : 0;
+  document.getElementById("barFill").style.width = pct + "%";
+  document.getElementById("barLabel").textContent = total > 0
+    ? pct + "% funded vs. pledged"
+    : "No funding or pledges reported for this location.";
+  document.getElementById("foundBlock").style.display = "block";
+} else {
+  document.getElementById("notFoundBlock").style.display = "block";
+}
+
+/* ---------------------------------------------------------------------- */
+/* Nav dropdowns (Countries / Coordinated Plans / Donors / Global Sectors) */
+(function(){
+  const menu = document.getElementById("ftsNavMenu");
+  const navbar = document.querySelector(".fts-navbar");
+  const indicatorFill = document.getElementById("navIndicatorFill");
+  if(!menu || !navbar || !indicatorFill) return;
+
+  const dropdowns = Array.from(menu.querySelectorAll(".nav-dropdown"));
+
+  function closeAll(){
+    dropdowns.forEach(dd => dd.classList.remove("open"));
+    indicatorFill.style.width = "0px";
+  }
+
+  function positionIndicator(trigger){
+    const navbarRect = navbar.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    indicatorFill.style.left = (triggerRect.left - navbarRect.left) + "px";
+    indicatorFill.style.width = triggerRect.width + "px";
+  }
+
+  dropdowns.forEach(dd => {
+    const trigger = dd.querySelector(".nav-trigger");
+    trigger.addEventListener("click", (e) => {
+      e.preventDefault();
+      const wasOpen = dd.classList.contains("open");
+      closeAll();
+      if(!wasOpen){
+        dd.classList.add("open");
+        positionIndicator(trigger);
+      }
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if(!menu.contains(e.target)) closeAll();
+  });
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeAll();
+  });
+
+  const LOCATION_NAMES = (typeof FUNDING_DATA !== "undefined") ? FUNDING_DATA.map(r => r[0]) : [];
+  const DONOR_NAMES = (typeof SOURCE_ORGS !== "undefined" && typeof DEST_ORGS !== "undefined")
+    ? Array.from(new Set(SOURCE_ORGS.concat(DEST_ORGS))).sort((a,b) => a.localeCompare(b))
+    : [];
+  const SECTOR_NAMES = (typeof SECTORS !== "undefined") ? SECTORS.slice() : [];
+
+  function wireSearch(key, list, opts){
+    opts = opts || {};
+    const input = menu.querySelector('[data-dd-search="' + key + '"]');
+    const results = menu.querySelector('[data-dd-results="' + key + '"]');
+    if(!input || !results) return;
+    input.addEventListener("input", () => {
+      const q = input.value.trim().toLowerCase();
+      results.innerHTML = "";
+      if(!q){ results.classList.remove("show"); return; }
+      const matches = list.filter(name => name.toLowerCase().includes(q)).slice(0, 8);
+      if(matches.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "dd-result-empty";
+        empty.textContent = "No matches";
+        results.appendChild(empty);
+      } else {
+        matches.forEach(name => {
+          const item = document.createElement(opts.link ? "a" : "div");
+          item.className = "dd-result-item";
+          item.textContent = name;
+          if(opts.link) item.href = opts.link(name);
+          results.appendChild(item);
+        });
+      }
+      results.classList.add("show");
+    });
+  }
+
+  wireSearch("countries", LOCATION_NAMES, { link: name => "location.html?loc=" + encodeURIComponent(name) });
+  wireSearch("donors", DONOR_NAMES, {});
+  wireSearch("sectors", SECTOR_NAMES, {});
+})();
+
+</script>
+
+</body>
+</html>
