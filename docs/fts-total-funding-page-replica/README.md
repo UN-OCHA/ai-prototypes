@@ -2,7 +2,7 @@
 
 A standalone rebuild of UN OCHA's [Total reported funding 2026](https://fts.unocha.org/global-funding/countries/2026) page from the Financial Tracking Service (FTS).
 
-**Live page:** https://jayasekhon.github.io/FTS-Total-Funding-2026-Page/
+**Live page:** [[https://jayasekhon.github.io/FTS-Total-Funding-2026-Page/](https://un-ocha.github.io/ai-prototypes/fts-total-funding-page-replica/)](https://un-ocha.github.io/ai-prototypes/fts-total-funding-page-replica/?sort=name&dir=asc)
 
 Built to see how fast AI coding tools could replicate these sorts of webpages.
 
